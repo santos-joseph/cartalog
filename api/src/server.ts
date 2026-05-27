@@ -16,6 +16,7 @@ import { vehiclesRoutes } from './modules/vehicles/vehicles.routes'
 import { leadsRoutes } from './modules/leads/leads.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { catalogRoutes } from './modules/catalog/catalog.routes'
+import { usersRoutes } from './modules/users/users.routes'
 
 const app = Fastify({
   logger: {
@@ -70,6 +71,7 @@ async function bootstrap() {
   app.register(leadsRoutes, { prefix: '/api/v1/leads' })
   app.register(dashboardRoutes, { prefix: '/api/v1/dashboard' })
   app.register(catalogRoutes, { prefix: '/api/v1/catalog' })
+  app.register(usersRoutes, { prefix: '/api/v1/users' })
 
   // ---- Error handler ----
   app.setErrorHandler(errorHandler)

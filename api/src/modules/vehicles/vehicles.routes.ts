@@ -1,28 +1,9 @@
-import path from 'path'
-import fs from 'fs/promises'
 import { FastifyInstance } from 'fastify'
 import { vehiclesService } from './vehicles.service'
 import { createVehicleSchema, updateVehicleSchema, vehicleFiltersSchema } from './vehicles.schema'
 import { authMiddleware } from '../../shared/middlewares/auth.middleware'
-import { env } from '../../config/env'
 import { AppError } from '../../shared/errors/app-error'
-
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
-async function saveVehicleImage(file: unknown): Promise<string> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const f = file as any
-  if (!ALLOWED_IMAGE_TYPES.includes(f.mimetype)) {
-    throw new AppError('Only JPEG, PNG and WebP images are allowed')
-  }
-  const ext = f.filename.split('.').pop()
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const dir = path.join(env.UPLOAD_DIR, 'vehicles')
-  await fs.mkdir(dir, { recursive: true })
-  const buffer = await f.toBuffer()
-  await fs.writeFile(path.join(dir, filename), buffer)
-  return `/uploads/vehicles/${filename}`
-}
+import { uploadsService } from '../uploads/uploads.service'
 
 export async function vehiclesRoutes(app: FastifyInstance) {
   // ---- PUBLIC routes (catalog) - no auth needed ----
@@ -104,7 +85,7 @@ export async function vehiclesRoutes(app: FastifyInstance) {
       const urls: string[] = []
 
       for await (const file of files) {
-        const url = await saveVehicleImage(file)
+        const url = await uploadsService.saveFile(file, 'vehicles')
         urls.push(url)
       }
 
@@ -125,7 +106,7 @@ export async function vehiclesRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string }
       const file = await request.file()
       if (!file) throw new AppError('No file provided')
-      const url = await saveVehicleImage(file)
+      const url = await uploadsService.saveFile(file, 'vehicles')
       const vehicle = await vehiclesService.setCoverImage(request.user.companyId, id, url)
       return reply.send({ coverImageUrl: vehicle.coverImageUrl })
     })

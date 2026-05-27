@@ -1,5 +1,3 @@
-import path from 'path'
-import fs from 'fs/promises'
 import { FastifyInstance } from 'fastify'
 import { companiesService } from './companies.service'
 import {
@@ -10,33 +8,8 @@ import {
   updatePageSchema,
 } from './companies.schema'
 import { authMiddleware, requireRole } from '../../shared/middlewares/auth.middleware'
-import { env } from '../../config/env'
 import { AppError } from '../../shared/errors/app-error'
-
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-
-async function saveUploadedFile(file: AsyncIterableIterator<unknown> | null, subdir: string) {
-  if (!file) throw new AppError('No file provided')
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = file as any
-
-  if (!ALLOWED_IMAGE_TYPES.includes(data.mimetype)) {
-    throw new AppError('Only JPEG, PNG, WebP and GIF images are allowed', 400)
-  }
-
-  const ext = data.filename.split('.').pop()
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const dir = path.join(env.UPLOAD_DIR, subdir)
-
-  await fs.mkdir(dir, { recursive: true })
-
-  const buffer = await data.toBuffer()
-  const filePath = path.join(dir, filename)
-  await fs.writeFile(filePath, buffer)
-
-  return `/uploads/${subdir}/${filename}`
-}
+import { uploadsService } from '../uploads/uploads.service'
 
 export async function companiesRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authMiddleware)
@@ -59,14 +32,14 @@ export async function companiesRoutes(app: FastifyInstance) {
 
   app.post('/settings/logo', async (request, reply) => {
     const file = await request.file()
-    const url = await saveUploadedFile(file as unknown as AsyncIterableIterator<unknown>, 'logos')
+    const url = await uploadsService.saveFile(file, 'logos')
     const settings = await companiesService.updateLogo(request.user.companyId, url)
     return reply.send({ logoUrl: settings.logoUrl })
   })
 
   app.post('/settings/favicon', async (request, reply) => {
     const file = await request.file()
-    const url = await saveUploadedFile(file as unknown as AsyncIterableIterator<unknown>, 'favicons')
+    const url = await uploadsService.saveFile(file, 'favicons')
     const settings = await companiesService.updateFavicon(request.user.companyId, url)
     return reply.send({ faviconUrl: settings.faviconUrl })
   })
@@ -83,10 +56,7 @@ export async function companiesRoutes(app: FastifyInstance) {
 
     for await (const part of parts) {
       if (part.type === 'file') {
-        imageUrl = await saveUploadedFile(
-          part as unknown as AsyncIterableIterator<unknown>,
-          'banners',
-        )
+        imageUrl = await uploadsService.saveFile(part, 'banners')
       } else {
         fields[part.fieldname] = (part as { value: unknown }).value
       }
