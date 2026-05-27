@@ -1,0 +1,24 @@
+import jwt from 'jsonwebtoken'
+import { env } from '../../config/env'
+
+interface AccessTokenPayload {
+  sub: string
+  companyId: string
+  role: string
+}
+
+export function generateAccessToken(payload: AccessTokenPayload): string {
+  return jwt.sign(payload, env.JWT_SECRET, {
+    expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+  })
+}
+
+export function generateRefreshToken(userId: string): string {
+  return jwt.sign({ sub: userId }, env.JWT_REFRESH_SECRET, {
+    expiresIn: env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+  })
+}
+
+export function verifyRefreshToken(token: string): { sub: string } {
+  return jwt.verify(token, env.JWT_REFRESH_SECRET) as { sub: string }
+}
