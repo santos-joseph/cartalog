@@ -4,10 +4,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Car, MessageSquare, TrendingUp, Eye } from 'lucide-react'
 import { dashboardService } from '@/services/dashboard.service'
 import { StatCard } from '@/components/ui/card'
-import { LeadStatusBadge } from '@/components/ui/badge'
 import { useAuthStore } from '@/stores/auth.store'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils'
 import type { DashboardOverview } from '@/types'
+
+function vehicleTitle(v: { model: { name: string; brand: { name: string } }; year: number }) {
+  return `${v.model.brand.name} ${v.model.name} ${v.year}`
+}
 
 export default function DashboardPage() {
   const company = useAuthStore((s) => s.company)
@@ -30,9 +33,11 @@ export default function DashboardPage() {
 
   if (!data) return null
 
+  const negotiating = data.leads.byStatus.find((s) => s.name === 'Negociando')?.count ?? 0
+  const contacted = data.leads.byStatus.find((s) => s.name === 'Contactado')?.count ?? 0
+
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">{company?.name}</p>
@@ -56,9 +61,9 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Em negociação"
-          value={data.leads.negotiating}
+          value={negotiating}
           icon={<MessageSquare size={20} />}
-          change={`${data.leads.contacted} contactados`}
+          change={`${contacted} contactados`}
           changeType="neutral"
         />
         <StatCard
@@ -81,8 +86,8 @@ export default function DashboardPage() {
               {data.topViewedVehicles.map((v) => (
                 <div key={v.id} className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                    {v.coverImageUrl ? (
-                      <img src={`${process.env.NEXT_PUBLIC_API_URL}${v.coverImageUrl}`} alt={v.title} className="w-full h-full object-cover" />
+                    {v.images[0]?.imageUrl ? (
+                      <img src={`${process.env.NEXT_PUBLIC_API_URL}${v.images[0].imageUrl}`} alt={vehicleTitle(v)} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400">
                         <Car size={20} />
@@ -90,7 +95,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{v.title}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{vehicleTitle(v)}</p>
                     <p className="text-xs text-gray-500">{v.year} · {formatCurrency(v.price)}</p>
                   </div>
                   <div className="flex items-center gap-1 text-xs text-gray-400">
@@ -118,10 +123,10 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{lead.name}</p>
                     <p className="text-xs text-gray-500 truncate">
-                      {lead.vehicle?.title ?? 'Sem veículo'} · {formatRelativeDate(lead.createdAt)}
+                      {lead.vehicle ? vehicleTitle(lead.vehicle) : 'Sem veículo'} · {formatRelativeDate(lead.createdAt)}
                     </p>
                   </div>
-                  <LeadStatusBadge status={lead.status} />
+                  <span className="text-xs text-gray-500 shrink-0">{lead.status?.name ?? '—'}</span>
                 </div>
               ))}
             </div>
@@ -132,19 +137,22 @@ export default function DashboardPage() {
       {/* Funil de leads */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Funil de vendas</h3>
-        <div className="grid grid-cols-5 gap-3">
-          {[
-            { label: 'Novos', value: data.leads.new, color: 'bg-purple-100 text-purple-700' },
-            { label: 'Contactados', value: data.leads.contacted, color: 'bg-yellow-100 text-yellow-700' },
-            { label: 'Negociando', value: data.leads.negotiating, color: 'bg-blue-100 text-blue-700' },
-            { label: 'Ganhos', value: data.leads.won, color: 'bg-green-100 text-green-700' },
-            { label: 'Perdidos', value: data.leads.lost, color: 'bg-red-100 text-red-700' },
-          ].map((step) => (
-            <div key={step.label} className={`rounded-lg p-4 text-center ${step.color}`}>
-              <p className="text-2xl font-bold">{step.value}</p>
-              <p className="text-xs font-medium mt-1">{step.label}</p>
-            </div>
-          ))}
+        <div className="flex gap-3 flex-wrap">
+          {data.leads.byStatus.map((step, i) => {
+            const colors = [
+              'bg-purple-100 text-purple-700',
+              'bg-yellow-100 text-yellow-700',
+              'bg-blue-100 text-blue-700',
+              'bg-green-100 text-green-700',
+              'bg-red-100 text-red-700',
+            ]
+            return (
+              <div key={step.id} className={`rounded-lg p-4 text-center flex-1 min-w-[80px] ${colors[i % colors.length]}`}>
+                <p className="text-2xl font-bold">{step.count}</p>
+                <p className="text-xs font-medium mt-1">{step.name}</p>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

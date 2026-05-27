@@ -8,21 +8,21 @@ async function getCompanyBySlug(slug: string) {
   const company = await prisma.company.findUnique({
     where: { slug },
     include: {
-      settings: true,
-      banners: { where: { active: true }, orderBy: { order: 'asc' } },
+      siteSettings: true,
+      seoSettings: true,
+      banners: { where: { isActive: true }, orderBy: { position: 'asc' } },
       pages: {
-        where: { status: 'PUBLISHED' },
-        select: { id: true, title: true, slug: true, order: true },
-        orderBy: { order: 'asc' },
+        where: { isPublished: true },
+        select: { id: true, title: true, slug: true },
       },
     },
   })
-  if (!company || !company.active) throw new AppError('Catalog not found', 404)
+  if (!company) throw new AppError('Catalog not found', 404)
   return company
 }
 
 export async function catalogRoutes(app: FastifyInstance) {
-  // GET /catalog/:slug — homepage do catálogo (empresa + veículos em destaque)
+  // GET /catalog/:slug — homepage do catálogo
   app.get('/:slug', async (request) => {
     const { slug } = request.params as { slug: string }
     const company = await getCompanyBySlug(slug)
@@ -30,8 +30,7 @@ export async function catalogRoutes(app: FastifyInstance) {
     const featured = await vehiclesService.list(company.id, {
       page: 1,
       perPage: 6,
-      featured: true,
-      status: 'AVAILABLE',
+      status: 'available',
       orderBy: 'createdAt',
       order: 'desc',
     })
@@ -41,7 +40,13 @@ export async function catalogRoutes(app: FastifyInstance) {
         id: company.id,
         name: company.name,
         slug: company.slug,
-        settings: company.settings,
+        logoUrl: company.logoUrl,
+        primaryColor: company.primaryColor,
+        secondaryColor: company.secondaryColor,
+        whatsapp: company.whatsapp,
+        phone: company.phone,
+        siteSettings: company.siteSettings,
+        seoSettings: company.seoSettings,
         banners: company.banners,
         pages: company.pages,
       },
@@ -49,33 +54,36 @@ export async function catalogRoutes(app: FastifyInstance) {
     }
   })
 
-  // GET /catalog/:slug/vehicles — listagem de veículos do catálogo
+  // GET /catalog/:slug/vehicles
   app.get('/:slug/vehicles', async (request) => {
     const { slug } = request.params as { slug: string }
     const company = await getCompanyBySlug(slug)
 
     const filters = vehicleFiltersSchema.parse({
       ...(request.query as object),
-      status: 'AVAILABLE',
+      status: 'available',
     })
 
     return vehiclesService.list(company.id, filters)
   })
 
-  // GET /catalog/:slug/vehicles/:vehicleSlug — detalhe do veículo
+  // GET /catalog/:slug/vehicles/:vehicleSlug
   app.get('/:slug/vehicles/:vehicleSlug', async (request) => {
     const { slug, vehicleSlug } = request.params as { slug: string; vehicleSlug: string }
     const company = await getCompanyBySlug(slug)
     return vehiclesService.findBySlug(company.id, vehicleSlug)
   })
 
-  // GET /catalog/:slug/pages/:pageSlug — página customizada
+  // GET /catalog/:slug/pages/:pageSlug
   app.get('/:slug/pages/:pageSlug', async (request) => {
     const { slug, pageSlug } = request.params as { slug: string; pageSlug: string }
     const company = await getCompanyBySlug(slug)
 
     const page = await prisma.page.findUnique({
-      where: { companyId_slug: { companyId: company.id, slug: pageSlug }, status: 'PUBLISHED' },
+      where: {
+        companyId_slug: { companyId: company.id, slug: pageSlug },
+        isPublished: true,
+      },
     })
     if (!page) throw new AppError('Page not found', 404)
     return page

@@ -15,7 +15,7 @@ export class AuthService {
 
     const [existingSlug, existingEmail] = await Promise.all([
       prisma.company.findUnique({ where: { slug } }),
-      prisma.company.findUnique({ where: { email: input.companyEmail } }),
+      prisma.company.findFirst({ where: { email: input.companyEmail } }),
     ])
 
     if (existingSlug) throw new ConflictError(`Company slug "${slug}"`)
@@ -30,9 +30,11 @@ export class AuthService {
           slug,
           email: input.companyEmail,
           phone: input.companyPhone,
-          settings: { create: {} },
         },
       })
+
+      await tx.siteSettings.create({ data: { companyId: company.id } })
+      await tx.seoSettings.create({ data: { companyId: company.id } })
 
       const user = await tx.user.create({
         data: {
@@ -61,7 +63,7 @@ export class AuthService {
   async login(input: LoginInput) {
     const company = await prisma.company.findUnique({ where: { slug: input.companySlug } })
 
-    if (!company || !company.active) {
+    if (!company) {
       throw new UnauthorizedError('Invalid credentials')
     }
 
@@ -69,7 +71,7 @@ export class AuthService {
       where: { companyId_email: { companyId: company.id, email: input.email } },
     })
 
-    if (!user || !user.active) {
+    if (!user) {
       throw new UnauthorizedError('Invalid credentials')
     }
 
@@ -77,8 +79,6 @@ export class AuthService {
     if (!passwordMatch) {
       throw new UnauthorizedError('Invalid credentials')
     }
-
-    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
 
     const accessToken = generateAccessToken({ sub: user.id, companyId: company.id, role: user.role })
     const refreshToken = generateRefreshToken(user.id)
@@ -97,10 +97,10 @@ export class AuthService {
 
       const user = await prisma.user.findUnique({
         where: { id: payload.sub },
-        include: { company: { select: { id: true, active: true } } },
+        include: { company: { select: { id: true } } },
       })
 
-      if (!user || !user.active || !user.company.active) {
+      if (!user) {
         throw new UnauthorizedError('Invalid refresh token')
       }
 
@@ -121,7 +121,7 @@ export class AuthService {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        company: { include: { settings: true } },
+        company: { include: { siteSettings: true } },
       },
     })
 
@@ -136,7 +136,9 @@ export class AuthService {
         id: user.company.id,
         name: user.company.name,
         slug: user.company.slug,
-        settings: user.company.settings,
+        primaryColor: user.company.primaryColor,
+        logoUrl: user.company.logoUrl,
+        showPrices: user.company.siteSettings?.showPrices ?? true,
       },
     }
   }

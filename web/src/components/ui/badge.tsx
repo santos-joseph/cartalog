@@ -31,25 +31,18 @@ export function Badge({ children, variant = 'default', className }: BadgeProps) 
   )
 }
 
-export function LeadStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: BadgeVariant }> = {
-    NEW: { label: 'Novo', variant: 'info' },
-    CONTACTED: { label: 'Contactado', variant: 'warning' },
-    NEGOTIATING: { label: 'Negociando', variant: 'default' },
-    WON: { label: 'Ganho', variant: 'success' },
-    LOST: { label: 'Perdido', variant: 'danger' },
-  }
-  const config = map[status] ?? { label: status, variant: 'gray' as BadgeVariant }
-  return <Badge variant={config.variant}>{config.label}</Badge>
+export function LeadStatusBadge({ status }: { status: { name: string } | null | string }) {
+  const name = typeof status === 'string' ? status : status?.name ?? 'Sem status'
+  return <Badge variant="gray">{name}</Badge>
 }
 
 export function VehicleStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: BadgeVariant }> = {
-    AVAILABLE: { label: 'Disponível', variant: 'success' },
-    SOLD: { label: 'Vendido', variant: 'danger' },
-    RESERVED: { label: 'Reservado', variant: 'warning' },
-    INACTIVE: { label: 'Inativo', variant: 'gray' },
+    available: { label: 'Disponível', variant: 'success' },
+    sold: { label: 'Vendido', variant: 'danger' },
+    reserved: { label: 'Reservado', variant: 'warning' },
+    inactive: { label: 'Inativo', variant: 'gray' },
   }
-  const config = map[status] ?? { label: status, variant: 'gray' as BadgeVariant }
+  const config = map[status.toLowerCase()] ?? { label: status, variant: 'gray' as BadgeVariant }
   return <Badge variant={config.variant}>{config.label}</Badge>
 }

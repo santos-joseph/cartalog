@@ -15,8 +15,6 @@ interface TeamMember {
   name: string
   email: string
   role: string
-  active: boolean
-  lastLoginAt: string | null
   createdAt: string
 }
 
@@ -116,8 +114,6 @@ export default function TeamPage() {
               <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                 <th className="px-4 py-3">Membro</th>
                 <th className="px-4 py-3">Função</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Último acesso</th>
                 <th className="px-4 py-3">Desde</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -140,12 +136,6 @@ export default function TeamPage() {
                     <Badge variant={m.role === 'ADMIN' ? 'default' : m.role === 'MANAGER' ? 'warning' : 'gray'}>
                       {roleLabels[m.role] ?? m.role}
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={m.active ? 'success' : 'danger'}>{m.active ? 'Ativo' : 'Inativo'}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {m.lastLoginAt ? formatDate(m.lastLoginAt) : 'Nunca'}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(m.createdAt)}</td>
                   <td className="px-4 py-3">

@@ -9,7 +9,7 @@ export class DashboardService {
       totalVehicles,
       vehiclesByStatus,
       totalLeads,
-      leadsByStatus,
+      leadStatuses,
       newLeadsThisMonth,
       topViewedVehicles,
       recentLeads,
@@ -25,10 +25,10 @@ export class DashboardService {
 
       prisma.lead.count({ where: { companyId } }),
 
-      prisma.lead.groupBy({
-        by: ['status'],
+      prisma.leadStatus.findMany({
         where: { companyId },
-        _count: true,
+        orderBy: { position: 'asc' },
+        include: { _count: { select: { leads: true } } },
       }),
 
       prisma.lead.count({
@@ -36,19 +36,18 @@ export class DashboardService {
       }),
 
       prisma.vehicle.findMany({
-        where: { companyId, status: 'AVAILABLE' },
-        orderBy: { viewCount: 'desc' },
-        take: 5,
+        where: { companyId, status: 'available' },
         select: {
           id: true,
-          title: true,
           slug: true,
-          coverImageUrl: true,
-          viewCount: true,
+          year: true,
           price: true,
-          brand: { select: { name: true } },
-          model: { select: { name: true } },
+          model: { select: { name: true, brand: { select: { name: true } } } },
+          images: { where: { isCover: true }, take: 1, select: { imageUrl: true } },
+          _count: { select: { views: true } },
         },
+        orderBy: { views: { _count: 'desc' } },
+        take: 5,
       }),
 
       prisma.lead.findMany({
@@ -56,11 +55,18 @@ export class DashboardService {
         orderBy: { createdAt: 'desc' },
         take: 10,
         include: {
-          vehicle: { select: { title: true, slug: true } },
+          vehicle: {
+            select: {
+              id: true,
+              slug: true,
+              year: true,
+              model: { select: { name: true, brand: { select: { name: true } } } },
+            },
+          },
+          status: { select: { name: true } },
         },
       }),
 
-      // Leads por dia nos últimos 30 dias (raw query para performance)
       prisma.$queryRaw<Array<{ date: string; count: bigint }>>`
         SELECT
           DATE(created_at)::text as date,
@@ -77,28 +83,27 @@ export class DashboardService {
       vehiclesByStatus.map((s) => [s.status, s._count]),
     )
 
-    const statusLeadMap = Object.fromEntries(
-      leadsByStatus.map((s) => [s.status, s._count]),
-    )
-
     return {
       vehicles: {
         total: totalVehicles,
-        available: statusVehicleMap.AVAILABLE ?? 0,
-        sold: statusVehicleMap.SOLD ?? 0,
-        reserved: statusVehicleMap.RESERVED ?? 0,
-        inactive: statusVehicleMap.INACTIVE ?? 0,
+        available: statusVehicleMap.available ?? 0,
+        sold: statusVehicleMap.sold ?? 0,
+        reserved: statusVehicleMap.reserved ?? 0,
       },
       leads: {
         total: totalLeads,
         newThisMonth: newLeadsThisMonth,
-        new: statusLeadMap.NEW ?? 0,
-        contacted: statusLeadMap.CONTACTED ?? 0,
-        negotiating: statusLeadMap.NEGOTIATING ?? 0,
-        won: statusLeadMap.WON ?? 0,
-        lost: statusLeadMap.LOST ?? 0,
+        byStatus: leadStatuses.map((s) => ({
+          id: s.id,
+          name: s.name,
+          position: s.position,
+          count: s._count.leads,
+        })),
       },
-      topViewedVehicles,
+      topViewedVehicles: topViewedVehicles.map((v) => ({
+        ...v,
+        viewCount: v._count.views,
+      })),
       recentLeads,
       leadsPerDay: leadsPerDay.map((d) => ({
         date: d.date,

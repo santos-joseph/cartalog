@@ -11,16 +11,16 @@ import { useAuthStore } from '@/stores/auth.store'
 interface Settings {
   primaryColor: string
   secondaryColor: string
+  whatsapp: string | null
+  phone: string | null
   siteTitle: string | null
   siteDescription: string | null
-  whatsapp: string | null
-  instagram: string | null
-  facebook: string | null
+  showPrices: boolean
+  showWhatsappButton: boolean
   address: string | null
   city: string | null
   state: string | null
-  showPrices: boolean
-  vehiclesPerPage: number
+  zipCode: string | null
 }
 
 export default function SettingsPage() {
@@ -112,14 +112,39 @@ export default function SettingsPage() {
 
       {/* Contato */}
       <Card>
-        <CardHeader><CardTitle>Redes Sociais e Contato</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Contato</CardTitle></CardHeader>
         <div className="grid grid-cols-2 gap-4">
           <Input label="WhatsApp" placeholder="5511999999999" value={form.whatsapp ?? ''} onChange={set('whatsapp')} />
-          <Input label="Instagram" placeholder="@empresa" value={form.instagram ?? ''} onChange={set('instagram')} />
-          <Input label="Facebook" placeholder="facebook.com/empresa" value={form.facebook ?? ''} onChange={set('facebook')} />
+          <Input label="Telefone" placeholder="(11) 9999-9999" value={form.phone ?? ''} onChange={set('phone')} />
           <Input label="Cidade" value={form.city ?? ''} onChange={set('city')} />
           <Input label="Estado" placeholder="SP" value={form.state ?? ''} onChange={set('state')} />
+          <Input label="CEP" placeholder="00000-000" value={form.zipCode ?? ''} onChange={set('zipCode')} />
           <Input label="Endereço" value={form.address ?? ''} onChange={set('address')} />
+        </div>
+      </Card>
+
+      {/* Exibição */}
+      <Card>
+        <CardHeader><CardTitle>Exibição</CardTitle></CardHeader>
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.showPrices ?? true}
+              onChange={(e) => setForm((f) => ({ ...f, showPrices: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600"
+            />
+            <span className="text-sm text-gray-700">Mostrar preços no catálogo</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.showWhatsappButton ?? true}
+              onChange={(e) => setForm((f) => ({ ...f, showWhatsappButton: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600"
+            />
+            <span className="text-sm text-gray-700">Mostrar botão de WhatsApp</span>
+          </label>
         </div>
       </Card>
 
@@ -130,7 +155,7 @@ export default function SettingsPage() {
       </div>
 
       {mutation.isSuccess && (
-        <p className="text-sm text-green-600 text-right">✓ Configurações salvas com sucesso</p>
+        <p className="text-sm text-green-600 text-right">Configurações salvas com sucesso</p>
       )}
     </div>
   )

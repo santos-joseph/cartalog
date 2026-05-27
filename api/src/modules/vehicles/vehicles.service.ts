@@ -7,24 +7,28 @@ import type { CreateVehicleInput, UpdateVehicleInput, VehicleFilters } from './v
 
 const vehicleSelect = {
   id: true,
-  title: true,
   slug: true,
   year: true,
   mileage: true,
   price: true,
-  priceOnRequest: true,
-  vehicleType: true,
-  fuelType: true,
-  transmission: true,
   color: true,
-  doors: true,
   status: true,
-  featured: true,
-  viewCount: true,
-  coverImageUrl: true,
   createdAt: true,
-  brand: { select: { id: true, name: true } },
-  model: { select: { id: true, name: true } },
+  model: {
+    select: {
+      id: true,
+      name: true,
+      brand: { select: { id: true, name: true } },
+    },
+  },
+  fuel: { select: { id: true, name: true } },
+  transmission: { select: { id: true, name: true } },
+  category: { select: { id: true, name: true } },
+  images: {
+    where: { isCover: true },
+    take: 1,
+    select: { imageUrl: true },
+  },
 } satisfies Prisma.VehicleSelect
 
 export class VehiclesService {
@@ -35,17 +39,18 @@ export class VehiclesService {
       companyId,
       ...(filters.search && {
         OR: [
-          { title: { contains: filters.search, mode: 'insensitive' } },
           { description: { contains: filters.search, mode: 'insensitive' } },
+          { model: { name: { contains: filters.search, mode: 'insensitive' } } },
+          { model: { brand: { name: { contains: filters.search, mode: 'insensitive' } } } },
+          { color: { contains: filters.search, mode: 'insensitive' } },
         ],
       }),
-      ...(filters.brandId && { brandId: filters.brandId }),
+      ...(filters.brandId && { model: { brandId: filters.brandId } }),
       ...(filters.modelId && { modelId: filters.modelId }),
-      ...(filters.vehicleType && { vehicleType: filters.vehicleType }),
-      ...(filters.fuelType && { fuelType: filters.fuelType }),
-      ...(filters.transmission && { transmission: filters.transmission }),
+      ...(filters.categoryId && { categoryId: filters.categoryId }),
+      ...(filters.fuelId && { fuelId: filters.fuelId }),
+      ...(filters.transmissionId && { transmissionId: filters.transmissionId }),
       ...(filters.status && { status: filters.status }),
-      ...(filters.featured !== undefined && { featured: filters.featured }),
       ...(filters.yearMin || filters.yearMax
         ? { year: { gte: filters.yearMin, lte: filters.yearMax } }
         : {}),
@@ -72,9 +77,11 @@ export class VehiclesService {
     const vehicle = await prisma.vehicle.findFirst({
       where: { id: vehicleId, companyId },
       include: {
-        brand: true,
-        model: true,
-        images: { orderBy: { order: 'asc' } },
+        model: { include: { brand: true } },
+        fuel: true,
+        transmission: true,
+        category: true,
+        images: { orderBy: { position: 'asc' } },
         features: { include: { feature: true } },
       },
     })
@@ -86,22 +93,29 @@ export class VehiclesService {
     const vehicle = await prisma.vehicle.findUnique({
       where: { companyId_slug: { companyId, slug } },
       include: {
-        brand: true,
-        model: true,
-        images: { orderBy: { order: 'asc' } },
+        model: { include: { brand: true } },
+        fuel: true,
+        transmission: true,
+        category: true,
+        images: { orderBy: { position: 'asc' } },
         features: { include: { feature: true } },
       },
     })
     if (!vehicle) throw new NotFoundError('Vehicle')
 
-    // Incrementa view count (fire and forget)
-    prisma.vehicle.update({ where: { id: vehicle.id }, data: { viewCount: { increment: 1 } } }).catch(() => null)
+    prisma.vehicleView.create({ data: { vehicleId: vehicle.id } }).catch(() => null)
 
     return vehicle
   }
 
   async create(companyId: string, input: CreateVehicleInput) {
-    const baseSlug = slugify(input.title)
+    const model = await prisma.model.findUnique({
+      where: { id: input.modelId },
+      include: { brand: true },
+    })
+    if (!model) throw new NotFoundError('Model')
+
+    const baseSlug = slugify(`${model.brand.name}-${model.name}-${input.year}`)
     const slug = await this.generateUniqueSlug(companyId, baseSlug)
 
     const { featureIds, price, ...rest } = input
@@ -109,14 +123,21 @@ export class VehiclesService {
     return prisma.vehicle.create({
       data: {
         ...rest,
-        price: new (await import('decimal.js')).Decimal(price),
+        price,
         companyId,
         slug,
         features: featureIds.length
           ? { create: featureIds.map((featureId) => ({ featureId })) }
           : undefined,
       },
-      include: { brand: true, model: true, images: true, features: { include: { feature: true } } },
+      include: {
+        model: { include: { brand: true } },
+        fuel: true,
+        transmission: true,
+        category: true,
+        images: true,
+        features: { include: { feature: true } },
+      },
     })
   }
 
@@ -126,19 +147,26 @@ export class VehiclesService {
     const { featureIds, price, ...rest } = input
 
     if (featureIds !== undefined) {
-      await prisma.vehicleFeatureMap.deleteMany({ where: { vehicleId } })
+      await prisma.vehicleFeature.deleteMany({ where: { vehicleId } })
     }
 
     return prisma.vehicle.update({
       where: { id: vehicleId },
       data: {
         ...rest,
-        ...(price !== undefined && { price: new (await import('decimal.js')).Decimal(price) }),
+        ...(price !== undefined && { price }),
         ...(featureIds !== undefined && {
           features: { create: featureIds.map((featureId) => ({ featureId })) },
         }),
       },
-      include: { brand: true, model: true, images: true, features: { include: { feature: true } } },
+      include: {
+        model: { include: { brand: true } },
+        fuel: true,
+        transmission: true,
+        category: true,
+        images: true,
+        features: { include: { feature: true } },
+      },
     })
   }
 
@@ -156,10 +184,14 @@ export class VehiclesService {
     }
 
     const images = await prisma.$transaction(
-      urls.map((url, i) =>
-        prisma.vehicleImage.create({ data: { vehicleId, url, order: existing + i } }),
+      urls.map((imageUrl, i) =>
+        prisma.vehicleImage.create({ data: { vehicleId, imageUrl, position: existing + i } }),
       ),
     )
+
+    if (existing === 0 && images.length > 0) {
+      await prisma.vehicleImage.update({ where: { id: images[0].id }, data: { isCover: true } })
+    }
 
     return images
   }
@@ -171,25 +203,37 @@ export class VehiclesService {
     await prisma.vehicleImage.delete({ where: { id: imageId } })
   }
 
-  async setCoverImage(companyId: string, vehicleId: string, imageUrl: string) {
+  async setCoverImage(companyId: string, vehicleId: string, imageId: string) {
     await this.findVehicleOrThrow(companyId, vehicleId)
-    return prisma.vehicle.update({ where: { id: vehicleId }, data: { coverImageUrl: imageUrl } })
+    await prisma.vehicleImage.updateMany({ where: { vehicleId }, data: { isCover: false } })
+    return prisma.vehicleImage.update({ where: { id: imageId }, data: { isCover: true } })
   }
 
   async getBrands() {
-    return prisma.brand.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
+    return prisma.brand.findMany({
+      orderBy: { name: 'asc' },
+      include: { models: { orderBy: { name: 'asc' }, select: { id: true, name: true } } },
+    })
   }
 
   async getModels(brandId?: string) {
-    return prisma.vehicleModel.findMany({
-      where: { active: true, ...(brandId && { brandId }) },
+    return prisma.model.findMany({
+      where: { ...(brandId && { brandId }) },
       orderBy: { name: 'asc' },
       include: { brand: { select: { id: true, name: true } } },
     })
   }
 
+  async getFuels() {
+    return prisma.fuel.findMany({ orderBy: { name: 'asc' } })
+  }
+
+  async getTransmissions() {
+    return prisma.transmission.findMany({ orderBy: { name: 'asc' } })
+  }
+
   async getFeatures() {
-    return prisma.vehicleFeature.findMany({ orderBy: [{ category: 'asc' }, { name: 'asc' }] })
+    return prisma.feature.findMany({ orderBy: { name: 'asc' } })
   }
 
   private async findVehicleOrThrow(companyId: string, vehicleId: string) {

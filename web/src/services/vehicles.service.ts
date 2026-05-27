@@ -11,11 +11,11 @@ export const vehiclesService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   deleteImage: (id: string, imageId: string) => api.delete(`/vehicles/${id}/images/${imageId}`),
-  setCover: (id: string, file: FormData) =>
-    api.patch(`/vehicles/${id}/cover`, file, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  setCover: (id: string, imageId: string) =>
+    api.patch(`/vehicles/${id}/cover`, { imageId }),
   getBrands: () => api.get('/vehicles/brands'),
   getModels: (brandId?: string) => api.get('/vehicles/models', { params: { brandId } }),
+  getFuels: () => api.get('/vehicles/fuels'),
+  getTransmissions: () => api.get('/vehicles/transmissions'),
   getFeatures: () => api.get('/vehicles/features'),
 }

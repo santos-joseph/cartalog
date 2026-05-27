@@ -14,7 +14,6 @@ export const createUserSchema = z.object({
 export const updateUserSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   role: z.enum(['ADMIN', 'MANAGER', 'SELLER']).optional(),
-  active: z.boolean().optional(),
 })
 
 export const changePasswordSchema = z.object({

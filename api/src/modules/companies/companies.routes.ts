@@ -14,7 +14,7 @@ import { uploadsService } from '../uploads/uploads.service'
 export async function companiesRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authMiddleware)
 
-  // GET /companies/me — dados da empresa atual
+  // GET /companies/me
   app.get('/me', async (request) => {
     return companiesService.getCompany(request.user.companyId)
   })
@@ -32,16 +32,10 @@ export async function companiesRoutes(app: FastifyInstance) {
 
   app.post('/settings/logo', async (request, reply) => {
     const file = await request.file()
+    if (!file) throw new AppError('Logo file is required')
     const url = await uploadsService.saveFile(file, 'logos')
-    const settings = await companiesService.updateLogo(request.user.companyId, url)
-    return reply.send({ logoUrl: settings.logoUrl })
-  })
-
-  app.post('/settings/favicon', async (request, reply) => {
-    const file = await request.file()
-    const url = await uploadsService.saveFile(file, 'favicons')
-    const settings = await companiesService.updateFavicon(request.user.companyId, url)
-    return reply.send({ faviconUrl: settings.faviconUrl })
+    const company = await companiesService.updateLogo(request.user.companyId, url)
+    return reply.send({ logoUrl: company.logoUrl })
   })
 
   // ---- BANNERS ----
@@ -50,22 +44,8 @@ export async function companiesRoutes(app: FastifyInstance) {
   })
 
   app.post('/banners', { onRequest: [requireRole('ADMIN', 'MANAGER')] }, async (request, reply) => {
-    const parts = request.parts()
-    let imageUrl: string | null = null
-    let fields: Record<string, unknown> = {}
-
-    for await (const part of parts) {
-      if (part.type === 'file') {
-        imageUrl = await uploadsService.saveFile(part, 'banners')
-      } else {
-        fields[part.fieldname] = (part as { value: unknown }).value
-      }
-    }
-
-    if (!imageUrl) throw new AppError('Banner image is required')
-
-    const body = createBannerSchema.parse(fields)
-    const banner = await companiesService.createBanner(request.user.companyId, imageUrl, body)
+    const body = createBannerSchema.parse(request.body)
+    const banner = await companiesService.createBanner(request.user.companyId, body)
     return reply.status(201).send(banner)
   })
 

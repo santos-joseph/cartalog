@@ -12,7 +12,7 @@ export class CompaniesService {
   async getCompany(companyId: string) {
     const company = await prisma.company.findUnique({
       where: { id: companyId },
-      include: { settings: true },
+      include: { siteSettings: true, seoSettings: true, companyLocations: { take: 1 } },
     })
     if (!company) throw new NotFoundError('Company')
     return company
@@ -21,30 +21,93 @@ export class CompaniesService {
   // ---- SETTINGS ----
 
   async getSettings(companyId: string) {
-    const settings = await prisma.companySettings.findUnique({ where: { companyId } })
-    if (!settings) throw new NotFoundError('Company settings')
-    return settings
+    const [company, siteSettings, seoSettings, location] = await Promise.all([
+      prisma.company.findUnique({ where: { id: companyId } }),
+      prisma.siteSettings.findUnique({ where: { companyId } }),
+      prisma.seoSettings.findUnique({ where: { companyId } }),
+      prisma.companyLocation.findFirst({ where: { companyId } }),
+    ])
+    if (!company) throw new NotFoundError('Company')
+
+    return {
+      primaryColor: company.primaryColor ?? '#2563EB',
+      secondaryColor: company.secondaryColor ?? '#1E40AF',
+      whatsapp: company.whatsapp ?? null,
+      phone: company.phone ?? null,
+      email: company.email ?? null,
+      showPrices: siteSettings?.showPrices ?? true,
+      showWhatsappButton: siteSettings?.showWhatsappButton ?? true,
+      siteTitle: seoSettings?.metaTitle ?? null,
+      siteDescription: seoSettings?.metaDescription ?? null,
+      siteKeywords: seoSettings?.metaKeywords ?? null,
+      address: location?.address ?? null,
+      city: location?.city ?? null,
+      state: location?.state ?? null,
+      zipCode: location?.zipCode ?? null,
+    }
   }
 
   async updateSettings(companyId: string, input: UpdateSettingsInput) {
-    return prisma.companySettings.update({
-      where: { companyId },
-      data: input,
-    })
+    const {
+      primaryColor, secondaryColor, whatsapp, phone, email,
+      showPrices, showWhatsappButton,
+      siteTitle, siteDescription, siteKeywords,
+      address, city, state, zipCode,
+    } = input
+
+    await Promise.all([
+      prisma.company.update({
+        where: { id: companyId },
+        data: {
+          ...(primaryColor !== undefined && { primaryColor }),
+          ...(secondaryColor !== undefined && { secondaryColor }),
+          ...(whatsapp !== undefined && { whatsapp }),
+          ...(phone !== undefined && { phone }),
+          ...(email !== undefined && { email }),
+        },
+      }),
+
+      prisma.siteSettings.upsert({
+        where: { companyId },
+        update: {
+          ...(showPrices !== undefined && { showPrices }),
+          ...(showWhatsappButton !== undefined && { showWhatsappButton }),
+        },
+        create: { companyId, showPrices: showPrices ?? true, showWhatsappButton: showWhatsappButton ?? true },
+      }),
+
+      prisma.seoSettings.upsert({
+        where: { companyId },
+        update: {
+          ...(siteTitle !== undefined && { metaTitle: siteTitle }),
+          ...(siteDescription !== undefined && { metaDescription: siteDescription }),
+          ...(siteKeywords !== undefined && { metaKeywords: siteKeywords }),
+        },
+        create: {
+          companyId,
+          metaTitle: siteTitle ?? null,
+          metaDescription: siteDescription ?? null,
+          metaKeywords: siteKeywords ?? null,
+        },
+      }),
+
+      (address || city || state || zipCode) ? prisma.companyLocation.upsert({
+        where: { id: await this.getLocationId(companyId) },
+        update: {
+          ...(address !== undefined && { address }),
+          ...(city !== undefined && { city }),
+          ...(state !== undefined && { state }),
+          ...(zipCode !== undefined && { zipCode }),
+        },
+        create: { companyId, address, city, state, zipCode },
+      }).catch(() => null) : Promise.resolve(),
+    ])
+
+    return this.getSettings(companyId)
   }
 
   async updateLogo(companyId: string, logoUrl: string) {
-    return prisma.companySettings.update({
-      where: { companyId },
-      data: { logoUrl },
-    })
-  }
-
-  async updateFavicon(companyId: string, faviconUrl: string) {
-    return prisma.companySettings.update({
-      where: { companyId },
-      data: { faviconUrl },
-    })
+    return prisma.company.update({ where: { id: companyId }, data: { logoUrl } })
   }
 
   // ---- BANNERS ----
@@ -52,13 +115,14 @@ export class CompaniesService {
   async getBanners(companyId: string) {
     return prisma.banner.findMany({
       where: { companyId },
-      orderBy: { order: 'asc' },
+      orderBy: { position: 'asc' },
     })
   }
 
-  async createBanner(companyId: string, imageUrl: string, input: CreateBannerInput) {
+  async createBanner(companyId: string, input: CreateBannerInput) {
+    const count = await prisma.banner.count({ where: { companyId } })
     return prisma.banner.create({
-      data: { companyId, imageUrl, ...input },
+      data: { companyId, ...input, position: input.position ?? count },
     })
   }
 
@@ -83,8 +147,7 @@ export class CompaniesService {
   async getPages(companyId: string) {
     return prisma.page.findMany({
       where: { companyId },
-      orderBy: { order: 'asc' },
-      select: { id: true, title: true, slug: true, status: true, order: true, updatedAt: true },
+      select: { id: true, title: true, slug: true, isPublished: true },
     })
   }
 
@@ -124,6 +187,11 @@ export class CompaniesService {
     const page = await prisma.page.findFirst({ where: { id: pageId, companyId } })
     if (!page) throw new NotFoundError('Page')
     return page
+  }
+
+  private async getLocationId(companyId: string): Promise<string> {
+    const loc = await prisma.companyLocation.findFirst({ where: { companyId } })
+    return loc?.id ?? ''
   }
 }
 

@@ -12,8 +12,6 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
-        active: true,
-        lastLoginAt: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -28,10 +26,7 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
-        active: true,
-        lastLoginAt: true,
         createdAt: true,
-        updatedAt: true,
       },
     })
     if (!user) throw new NotFoundError('User')
@@ -47,23 +42,22 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(input.password, 12)
 
     return prisma.user.create({
-      data: { companyId, ...input, passwordHash, password: undefined },
-      select: { id: true, name: true, email: true, role: true, active: true, createdAt: true },
+      data: { companyId, name: input.name, email: input.email, role: input.role, passwordHash },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
     })
   }
 
   async update(companyId: string, userId: string, requestorId: string, requestorRole: string, input: UpdateUserInput) {
     const user = await this.findUserOrThrow(companyId, userId)
 
-    // Só ADMIN pode mudar o role de outros ADMIN
-    if (user.role === 'ADMIN' && requestorId !== userId && requestorRole !== 'ADMIN') {
+    if (user.role === 'admin' && requestorId !== userId && requestorRole !== 'admin') {
       throw new ForbiddenError('Only admins can modify other admin accounts')
     }
 
     return prisma.user.update({
       where: { id: userId },
-      data: input,
-      select: { id: true, name: true, email: true, role: true, active: true, updatedAt: true },
+      data: { name: input.name, role: input.role },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
     })
   }
 

@@ -6,45 +6,21 @@ import { AppError } from '../../shared/errors/app-error'
 import { uploadsService } from '../uploads/uploads.service'
 
 export async function vehiclesRoutes(app: FastifyInstance) {
-  // ---- PUBLIC routes (catalog) - no auth needed ----
-
-  // GET /vehicles/public/:companySlug — catálogo público
-  app.get('/public/:companySlug', async (request) => {
-    const { companySlug } = request.params as { companySlug: string }
-    const company = await import('../../database/prisma').then((m) =>
-      m.prisma.company.findUnique({ where: { slug: companySlug } }),
-    )
-    if (!company) throw new AppError('Company not found', 404)
-
-    const filters = vehicleFiltersSchema.parse({
-      ...(request.query as object),
-      status: 'AVAILABLE',
-    })
-    return vehiclesService.list(company.id, filters)
-  })
-
-  app.get('/public/:companySlug/:slug', async (request) => {
-    const { companySlug, slug } = request.params as { companySlug: string; slug: string }
-    const company = await import('../../database/prisma').then((m) =>
-      m.prisma.company.findUnique({ where: { slug: companySlug } }),
-    )
-    if (!company) throw new AppError('Company not found', 404)
-    return vehiclesService.findBySlug(company.id, slug)
-  })
-
   // ---- Reference data (public) ----
   app.get('/brands', async () => vehiclesService.getBrands())
   app.get('/models', async (request) => {
     const { brandId } = request.query as { brandId?: string }
     return vehiclesService.getModels(brandId)
   })
+  app.get('/fuels', async () => vehiclesService.getFuels())
+  app.get('/transmissions', async () => vehiclesService.getTransmissions())
   app.get('/features', async () => vehiclesService.getFeatures())
 
   // ---- PRIVATE routes (admin panel) ----
   app.register(async (privateApp) => {
     privateApp.addHook('onRequest', authMiddleware)
 
-    // GET /vehicles — listar veículos da empresa
+    // GET /vehicles
     privateApp.get('/', async (request) => {
       const filters = vehicleFiltersSchema.parse(request.query)
       return vehiclesService.list(request.user.companyId, filters)
@@ -78,7 +54,7 @@ export async function vehiclesRoutes(app: FastifyInstance) {
       return reply.status(204).send()
     })
 
-    // POST /vehicles/:id/images — upload de imagens
+    // POST /vehicles/:id/images
     privateApp.post('/:id/images', async (request, reply) => {
       const { id } = request.params as { id: string }
       const files = request.files()
@@ -101,14 +77,13 @@ export async function vehiclesRoutes(app: FastifyInstance) {
       return reply.status(204).send()
     })
 
-    // PATCH /vehicles/:id/cover — definir imagem de capa
+    // PATCH /vehicles/:id/cover
     privateApp.patch('/:id/cover', async (request, reply) => {
       const { id } = request.params as { id: string }
-      const file = await request.file()
-      if (!file) throw new AppError('No file provided')
-      const url = await uploadsService.saveFile(file, 'vehicles')
-      const vehicle = await vehiclesService.setCoverImage(request.user.companyId, id, url)
-      return reply.send({ coverImageUrl: vehicle.coverImageUrl })
+      const { imageId } = request.body as { imageId: string }
+      if (!imageId) throw new AppError('imageId is required')
+      const image = await vehiclesService.setCoverImage(request.user.companyId, id, imageId)
+      return reply.send(image)
     })
   })
 }

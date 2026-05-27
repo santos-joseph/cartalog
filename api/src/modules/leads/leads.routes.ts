@@ -25,6 +25,10 @@ export async function leadsRoutes(app: FastifyInstance) {
       return leadsService.getStats(request.user.companyId)
     })
 
+    privateApp.get('/statuses', async (request) => {
+      return leadsService.getStatuses(request.user.companyId)
+    })
+
     privateApp.get('/:id', async (request) => {
       const { id } = request.params as { id: string }
       return leadsService.findById(request.user.companyId, id)

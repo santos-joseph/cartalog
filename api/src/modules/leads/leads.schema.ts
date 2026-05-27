@@ -6,27 +6,27 @@ export const createLeadSchema = z.object({
   email: z.email().optional().or(z.literal('')),
   phone: z.string().optional(),
   message: z.string().max(1000).optional(),
-  source: z.enum(['CATALOG', 'WHATSAPP', 'PHONE', 'WALK_IN', 'REFERRAL', 'OTHER']).default('CATALOG'),
+  source: z.string().optional(),
 })
 
 export const updateLeadSchema = z.object({
-  status: z.enum(['NEW', 'CONTACTED', 'NEGOTIATING', 'WON', 'LOST']).optional(),
-  assignedTo: z.string().optional(),
+  statusId: z.string().optional(),
+  assignedUserId: z.string().optional(),
 })
 
 export const createInteractionSchema = z.object({
-  type: z.enum(['call', 'email', 'whatsapp', 'note', 'visit']),
-  description: z.string().min(1).max(2000),
+  type: z.string().min(1),
+  note: z.string().min(1).max(2000).optional(),
 })
 
 export const leadsFiltersSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   perPage: z.coerce.number().min(1).max(100).default(20),
-  status: z.enum(['NEW', 'CONTACTED', 'NEGOTIATING', 'WON', 'LOST']).optional(),
+  statusId: z.string().optional(),
   search: z.string().optional(),
   vehicleId: z.string().optional(),
-  assignedTo: z.string().optional(),
-  orderBy: z.enum(['createdAt', 'updatedAt']).default('createdAt'),
+  assignedUserId: z.string().optional(),
+  orderBy: z.enum(['createdAt']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),
 })
 

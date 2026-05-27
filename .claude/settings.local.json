@@ -15,7 +15,32 @@
       "Bash(psql -l)",
       "Read(//usr/local/bin/**)",
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"Sim, pode resetar o banco de desenvolvimento\" npx prisma *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(git check-ignore *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias @/* --no-turbopack --yes)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/react/package.json'\\).version\\)\")",
+      "Bash(mkdir -p \"src/app/\\(dashboard\\)/vehicles/[id]\")",
+      "Bash(mkdir -p \"src/app/\\(dashboard\\)/leads/[id]\")",
+      "Bash(mkdir -p \"src/app/[slug]\")",
+      "Bash(mkdir -p \"src/app/[slug]/veiculos/[vehicleSlug]\")",
+      "Bash(npx next *)",
+      "Bash(mkdir -p \"src/app/\\(dashboard\\)/dashboard/vehicles/[id]\")",
+      "Bash(mkdir -p \"src/app/\\(dashboard\\)/dashboard/leads/[id]\")",
+      "Bash(psql postgresql://24js@localhost:5432/cartalog -c \"\\\\d companies\")",
+      "Bash(psql postgresql://24js@localhost:5432/cartalog -c \"\\\\d vehicles\")",
+      "Bash(psql postgresql://24js@localhost:5432/cartalog -c \"\\\\dt public.*\")",
+      "Bash(awk '{print $3}')",
+      "Bash(grep -v \"^Name$\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(curl -s http://localhost:3333/health)",
+      "Bash(curl -s -X POST http://localhost:3333/api/v1/auth/login -H 'Content-Type: application/json' -d '{\"companySlug\":\"demo-motors\",\"email\":\"admin@demo.com\",\"password\":\"Admin@123\"}')",
+      "Bash(psql *)",
+      "Bash(curl -s \"http://localhost:3333/api/v1/vehicles/fuels\")",
+      "Bash(curl -s http://localhost:3000 -I)",
+      "Bash(curl -s \"http://localhost:3333/api/v1/vehicles/brands\")"
     ]
   }
 }

@@ -3,13 +3,16 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Car, Pencil, Trash2, Eye } from 'lucide-react'
+import { Plus, Search, Car, Pencil, Trash2 } from 'lucide-react'
 import { vehiclesService } from '@/services/vehicles.service'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { VehicleStatusBadge } from '@/components/ui/badge'
 import { formatCurrency, formatMileage } from '@/lib/utils'
 import type { PaginatedResponse, Vehicle } from '@/types'
+
+function vehicleTitle(v: Vehicle) {
+  return `${v.model.brand.name} ${v.model.name} ${v.year}`
+}
 
 export default function VehiclesPage() {
   const router = useRouter()
@@ -80,76 +83,73 @@ export default function VehiclesPage() {
                 <th className="px-4 py-3">Ano / KM</th>
                 <th className="px-4 py-3">Preço</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Views</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {data.data.map((v) => (
-                <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                        {v.coverImageUrl ? (
-                          <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL}${v.coverImageUrl}`}
-                            alt={v.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <Car size={16} />
-                          </div>
-                        )}
+              {data.data.map((v) => {
+                const title = vehicleTitle(v)
+                const coverImage = v.images?.[0]?.imageUrl
+                return (
+                  <tr key={v.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                          {coverImage ? (
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_API_URL}${coverImage}`}
+                              alt={title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <Car size={16} />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">{title}</p>
+                          <p className="text-xs text-gray-500">
+                            {v.color ? `${v.color} · ` : ''}{v.fuel?.name ?? ''}{v.transmission ? ` · ${v.transmission.name}` : ''}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{v.title}</p>
-                        <p className="text-xs text-gray-500">{v.brand.name} · {v.model.name}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {v.year} · {formatMileage(v.mileage)}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {formatCurrency(v.price)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <VehicleStatusBadge status={v.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          onClick={() => router.push(`/dashboard/vehicles/${v.id}`)}
+                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(v.id, title)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {v.year} · {formatMileage(v.mileage)}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {v.priceOnRequest ? 'Sob consulta' : formatCurrency(v.price)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <VehicleStatusBadge status={v.status} />
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Eye size={12} /> {v.viewCount}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button
-                        onClick={() => router.push(`/dashboard/vehicles/${v.id}`)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        onClick={() => confirmDelete(v.id, v.title)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
 
-        {/* Pagination */}
         {data && data.meta.lastPage > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm">
-            <p className="text-gray-500">
-              Página {data.meta.page} de {data.meta.lastPage}
-            </p>
+            <p className="text-gray-500">Página {data.meta.page} de {data.meta.lastPage}</p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior

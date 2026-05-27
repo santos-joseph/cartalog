@@ -5,36 +5,36 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { MessageSquare, Search } from 'lucide-react'
 import { leadsService } from '@/services/leads.service'
-import { LeadStatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatRelativeDate } from '@/lib/utils'
-import type { PaginatedResponse, Lead } from '@/types'
+import type { PaginatedResponse, Lead, LeadStatus } from '@/types'
 
-const STATUSES = [
-  { value: '', label: 'Todos' },
-  { value: 'NEW', label: 'Novos' },
-  { value: 'CONTACTED', label: 'Contactados' },
-  { value: 'NEGOTIATING', label: 'Negociando' },
-  { value: 'WON', label: 'Ganhos' },
-  { value: 'LOST', label: 'Perdidos' },
-]
+function vehicleLabel(v: Lead['vehicle']) {
+  if (!v) return null
+  return `${v.model.brand.name} ${v.model.name} ${v.year}`
+}
 
 export default function LeadsPage() {
   const router = useRouter()
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('')
+  const [statusId, setStatusId] = useState('')
   const [page, setPage] = useState(1)
 
+  const { data: statuses = [] } = useQuery<LeadStatus[]>({
+    queryKey: ['lead-statuses'],
+    queryFn: () => leadsService.statuses().then((r) => r.data),
+  })
+
   const { data, isLoading } = useQuery<PaginatedResponse<Lead>>({
-    queryKey: ['leads', { search, status, page }],
+    queryKey: ['leads', { search, statusId, page }],
     queryFn: () =>
-      leadsService.list({ search: search || undefined, status: status || undefined, page }).then((r) => r.data),
+      leadsService.list({ search: search || undefined, statusId: statusId || undefined, page }).then((r) => r.data),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, newStatus }: { id: string; newStatus: string }) =>
-      leadsService.update(id, { status: newStatus }),
+    mutationFn: ({ id, newStatusId }: { id: string; newStatusId: string }) =>
+      leadsService.update(id, { statusId: newStatusId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['leads'] }),
   })
 
@@ -58,17 +58,23 @@ export default function LeadsPage() {
           />
         </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          {STATUSES.map((s) => (
+          <button
+            onClick={() => { setStatusId(''); setPage(1) }}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              statusId === '' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Todos
+          </button>
+          {statuses.map((s) => (
             <button
-              key={s.value}
-              onClick={() => { setStatus(s.value); setPage(1) }}
+              key={s.id}
+              onClick={() => { setStatusId(s.id); setPage(1) }}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                status === s.value
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                statusId === s.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {s.label}
+              {s.name}
             </button>
           ))}
         </div>
@@ -107,20 +113,21 @@ export default function LeadsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600 max-w-[180px] truncate">
-                    {lead.vehicle?.title ?? <span className="text-gray-400 italic">Geral</span>}
+                    {vehicleLabel(lead.vehicle) ?? <span className="text-gray-400 italic">Geral</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     {lead.phone ?? lead.email ?? '-'}
                   </td>
                   <td className="px-4 py-3">
                     <select
-                      value={lead.status}
+                      value={lead.status?.id ?? ''}
                       onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => updateMutation.mutate({ id: lead.id, newStatus: e.target.value })}
+                      onChange={(e) => updateMutation.mutate({ id: lead.id, newStatusId: e.target.value })}
                       className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
-                      {STATUSES.filter((s) => s.value).map((s) => (
-                        <option key={s.value} value={s.value}>{s.label}</option>
+                      <option value="">Sem status</option>
+                      {statuses.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
                   </td>

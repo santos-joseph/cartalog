@@ -4,15 +4,25 @@ import { NotFoundError } from '../../shared/errors/app-error'
 import { getPaginationParams, buildMeta } from '../../shared/utils/pagination'
 import type { CreateLeadInput, UpdateLeadInput, CreateInteractionInput, LeadsFilters } from './leads.schema'
 
+const vehicleInclude = {
+  select: {
+    id: true,
+    slug: true,
+    year: true,
+    model: { select: { name: true, brand: { select: { name: true } } } },
+    images: { where: { isCover: true }, take: 1, select: { imageUrl: true } },
+  },
+} as const
+
 export class LeadsService {
   async list(companyId: string, filters: LeadsFilters) {
     const { page, perPage, skip, take } = getPaginationParams(filters)
 
     const where: Prisma.LeadWhereInput = {
       companyId,
-      ...(filters.status && { status: filters.status }),
+      ...(filters.statusId && { statusId: filters.statusId }),
       ...(filters.vehicleId && { vehicleId: filters.vehicleId }),
-      ...(filters.assignedTo && { assignedTo: filters.assignedTo }),
+      ...(filters.assignedUserId && { assignedUserId: filters.assignedUserId }),
       ...(filters.search && {
         OR: [
           { name: { contains: filters.search, mode: 'insensitive' } },
@@ -26,9 +36,9 @@ export class LeadsService {
       prisma.lead.findMany({
         where,
         include: {
-          vehicle: {
-            select: { id: true, title: true, slug: true, coverImageUrl: true },
-          },
+          vehicle: vehicleInclude,
+          status: { select: { id: true, name: true } },
+          assignedUser: { select: { id: true, name: true } },
           _count: { select: { interactions: true } },
         },
         orderBy: { [filters.orderBy]: filters.order },
@@ -45,8 +55,12 @@ export class LeadsService {
     const lead = await prisma.lead.findFirst({
       where: { id: leadId, companyId },
       include: {
-        vehicle: { select: { id: true, title: true, slug: true, coverImageUrl: true } },
+        vehicle: vehicleInclude,
+        status: { select: { id: true, name: true } },
+        assignedUser: { select: { id: true, name: true } },
         interactions: { orderBy: { createdAt: 'desc' } },
+        followups: { orderBy: { scheduledAt: 'asc' } },
+        tags: { include: { tag: true } },
       },
     })
     if (!lead) throw new NotFoundError('Lead')
@@ -55,59 +69,76 @@ export class LeadsService {
 
   async create(companyId: string, input: CreateLeadInput) {
     return prisma.lead.create({
-      data: { companyId, ...input, email: input.email || undefined },
-      include: { vehicle: { select: { id: true, title: true } } },
+      data: {
+        companyId,
+        name: input.name,
+        email: input.email || undefined,
+        phone: input.phone,
+        message: input.message,
+        source: input.source,
+        vehicleId: input.vehicleId,
+      },
+      include: { vehicle: vehicleInclude },
     })
   }
 
   async update(companyId: string, leadId: string, input: UpdateLeadInput) {
     await this.findLeadOrThrow(companyId, leadId)
-    return prisma.lead.update({ where: { id: leadId }, data: input })
+    return prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        ...(input.statusId !== undefined && { statusId: input.statusId }),
+        ...(input.assignedUserId !== undefined && { assignedUserId: input.assignedUserId }),
+      },
+      include: { status: { select: { id: true, name: true } } },
+    })
   }
 
   async addInteraction(companyId: string, leadId: string, userId: string, input: CreateInteractionInput) {
     await this.findLeadOrThrow(companyId, leadId)
 
-    const interaction = await prisma.leadInteraction.create({
-      data: { leadId, userId, ...input },
+    return prisma.leadInteraction.create({
+      data: { leadId, userId, type: input.type, note: input.note },
     })
+  }
 
-    // Auto-update lead status to CONTACTED if still NEW
-    await prisma.lead.updateMany({
-      where: { id: leadId, status: 'NEW' },
-      data: { status: 'CONTACTED' },
+  async getStatuses(companyId: string) {
+    return prisma.leadStatus.findMany({
+      where: { companyId },
+      orderBy: { position: 'asc' },
+      include: { _count: { select: { leads: true } } },
     })
-
-    return interaction
   }
 
   async getStats(companyId: string) {
-    const [total, byStatus, recentLeads] = await Promise.all([
+    const [total, statuses, recentLeads] = await Promise.all([
       prisma.lead.count({ where: { companyId } }),
 
-      prisma.lead.groupBy({
-        by: ['status'],
+      prisma.leadStatus.findMany({
         where: { companyId },
-        _count: true,
+        orderBy: { position: 'asc' },
+        include: { _count: { select: { leads: true } } },
       }),
 
       prisma.lead.findMany({
         where: { companyId },
         orderBy: { createdAt: 'desc' },
         take: 5,
-        include: { vehicle: { select: { title: true } } },
+        include: {
+          vehicle: vehicleInclude,
+          status: { select: { name: true } },
+        },
       }),
     ])
 
-    const statusMap = Object.fromEntries(byStatus.map((s) => [s.status, s._count]))
-
     return {
       total,
-      new: statusMap.NEW ?? 0,
-      contacted: statusMap.CONTACTED ?? 0,
-      negotiating: statusMap.NEGOTIATING ?? 0,
-      won: statusMap.WON ?? 0,
-      lost: statusMap.LOST ?? 0,
+      byStatus: statuses.map((s) => ({
+        id: s.id,
+        name: s.name,
+        position: s.position,
+        count: s._count.leads,
+      })),
       recentLeads,
     }
   }
