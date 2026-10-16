@@ -1,14 +1,14 @@
 import { FastifyInstance } from 'fastify'
 import { leadsService } from './leads.service'
-import { createLeadSchema, updateLeadSchema, createInteractionSchema, leadsFiltersSchema } from './leads.schema'
+import { createLeadSchema, updateLeadSchema, createInteractionSchema, leadsFiltersSchema, createLeadStatusSchema, updateLeadStatusSchema } from './leads.schema'
 import { authMiddleware } from '../../shared/middlewares/auth.middleware'
+import { tenantMiddleware } from '../../shared/middlewares/tenant.middleware'
 
 export async function leadsRoutes(app: FastifyInstance) {
-  // POST /leads — captura pública de leads (sem auth)
-  app.post('/public', async (request, reply) => {
+  // POST /leads/public — captura pública de leads (sem auth, empresa pelo subdomínio)
+  app.post('/public', { onRequest: [tenantMiddleware] }, async (request, reply) => {
     const body = createLeadSchema.parse(request.body)
-    const { companyId } = request.query as { companyId: string }
-    const lead = await leadsService.create(companyId, body)
+    const lead = await leadsService.create(request.tenant.id, body)
     return reply.status(201).send({ message: 'Lead received', id: lead.id })
   })
 
@@ -27,6 +27,25 @@ export async function leadsRoutes(app: FastifyInstance) {
 
     privateApp.get('/statuses', async (request) => {
       return leadsService.getStatuses(request.user.companyId)
+    })
+
+    privateApp.post('/statuses', async (request, reply) => {
+      const body = createLeadStatusSchema.parse(request.body)
+      const status = await leadsService.createStatus(request.user.companyId, body)
+      return reply.status(201).send(status)
+    })
+
+    privateApp.put('/statuses/:id', async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const body = updateLeadStatusSchema.parse(request.body)
+      const status = await leadsService.updateStatus(request.user.companyId, id, body)
+      return reply.send(status)
+    })
+
+    privateApp.delete('/statuses/:id', async (request, reply) => {
+      const { id } = request.params as { id: string }
+      await leadsService.deleteStatus(request.user.companyId, id)
+      return reply.status(204).send()
     })
 
     privateApp.get('/:id', async (request) => {
@@ -50,7 +69,12 @@ export async function leadsRoutes(app: FastifyInstance) {
     privateApp.post('/:id/interactions', async (request, reply) => {
       const { id } = request.params as { id: string }
       const body = createInteractionSchema.parse(request.body)
-      const interaction = await leadsService.addInteraction(request.user.companyId, id, request.user.sub, body)
+      const interaction = await leadsService.addInteraction(
+        request.user.companyId,
+        id,
+        request.user.sub,
+        body,
+      )
       return reply.status(201).send(interaction)
     })
   })

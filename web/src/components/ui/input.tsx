@@ -1,42 +1,45 @@
+import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { InputHTMLAttributes, forwardRef } from 'react'
+import { Label } from './label'
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   helper?: string
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, helper, id, ...props }, ref) => {
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, label, error, helper, id, required, ...props }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-')
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+          <Label htmlFor={inputId}>
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
-          </label>
+            {required && <span className="text-destructive ml-0.5">*</span>}
+          </Label>
         )}
         <input
           ref={ref}
           id={inputId}
+          required={required}
           className={cn(
-            'block w-full rounded-lg border px-3 py-2 text-sm text-gray-900',
-            'placeholder:text-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'disabled:bg-gray-50 disabled:text-gray-500',
-            error
-              ? 'border-red-300 focus:ring-red-500'
-              : 'border-gray-300',
+            'flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground',
+            'placeholder:text-muted-foreground',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0 focus:border-primary',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            'transition-colors',
+            error ? 'border-destructive focus:ring-destructive' : 'border-input',
             className,
           )}
           {...props}
         />
-        {error && <p className="text-xs text-red-600">{error}</p>}
-        {helper && !error && <p className="text-xs text-gray-500">{helper}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        {helper && !error && <p className="text-xs text-muted-foreground">{helper}</p>}
       </div>
     )
   },
 )
 Input.displayName = 'Input'
+
+export { Input }

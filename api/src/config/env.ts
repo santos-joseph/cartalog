@@ -12,6 +12,7 @@ const envSchema = z.object({
   API_URL: z.url().default('http://localhost:3333'),
   UPLOAD_DIR: z.string().default('./uploads'),
   MAX_FILE_SIZE: z.coerce.number().default(10485760),
+  BASE_DOMAIN: z.string().default('localhost'),
 })
 
 const parsed = envSchema.safeParse(process.env)

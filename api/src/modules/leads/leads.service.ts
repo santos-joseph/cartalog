@@ -2,7 +2,7 @@ import { Prisma } from '../../../generated/prisma/client'
 import { prisma } from '../../database/prisma'
 import { NotFoundError } from '../../shared/errors/app-error'
 import { getPaginationParams, buildMeta } from '../../shared/utils/pagination'
-import type { CreateLeadInput, UpdateLeadInput, CreateInteractionInput, LeadsFilters } from './leads.schema'
+import type { CreateLeadInput, UpdateLeadInput, CreateInteractionInput, LeadsFilters, CreateLeadStatusInput, UpdateLeadStatusInput } from './leads.schema'
 
 const vehicleInclude = {
   select: {
@@ -108,6 +108,29 @@ export class LeadsService {
       orderBy: { position: 'asc' },
       include: { _count: { select: { leads: true } } },
     })
+  }
+
+  async createStatus(companyId: string, input: CreateLeadStatusInput) {
+    const count = await prisma.leadStatus.count({ where: { companyId } })
+    return prisma.leadStatus.create({
+      data: { companyId, name: input.name, position: input.position ?? count },
+    })
+  }
+
+  async updateStatus(companyId: string, statusId: string, input: UpdateLeadStatusInput) {
+    await this.findStatusOrThrow(companyId, statusId)
+    return prisma.leadStatus.update({ where: { id: statusId }, data: input })
+  }
+
+  async deleteStatus(companyId: string, statusId: string) {
+    await this.findStatusOrThrow(companyId, statusId)
+    await prisma.leadStatus.delete({ where: { id: statusId } })
+  }
+
+  private async findStatusOrThrow(companyId: string, statusId: string) {
+    const status = await prisma.leadStatus.findFirst({ where: { id: statusId, companyId } })
+    if (!status) throw new NotFoundError('LeadStatus')
+    return status
   }
 
   async getStats(companyId: string) {

@@ -3,11 +3,20 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Car, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Search, Car, Pencil, Trash2, AlertCircle } from 'lucide-react'
 import { vehiclesService } from '@/services/vehicles.service'
-import { Button } from '@/components/ui/button'
-import { VehicleStatusBadge } from '@/components/ui/badge'
 import { formatCurrency, formatMileage } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { VehicleStatusBadge } from '@/components/ui/badge'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogDescription, DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { PaginatedResponse, Vehicle } from '@/types'
 
 function vehicleTitle(v: Vehicle) {
@@ -19,6 +28,7 @@ export default function VehiclesPage() {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   const { data, isLoading } = useQuery<PaginatedResponse<Vehicle>>({
     queryKey: ['vehicles', { search, page }],
@@ -27,74 +37,76 @@ export default function VehiclesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => vehiclesService.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['vehicles'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['vehicles'] })
+      setDeleteId(null)
+    },
   })
-
-  function confirmDelete(id: string, title: string) {
-    if (confirm(`Tem certeza que deseja excluir "${title}"?`)) {
-      deleteMutation.mutate(id)
-    }
-  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Veículos</h1>
-          <p className="text-gray-500 mt-1">{data?.meta.total ?? 0} veículos cadastrados</p>
+          <h1 className="text-2xl font-bold text-foreground">Veículos</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{data?.meta.total ?? 0} veículos cadastrados</p>
         </div>
-        <Button onClick={() => router.push('/dashboard/vehicles/new')}>
-          <Plus size={16} />
-          Novo veículo
+        <Button variant="gradient" onClick={() => router.push('/dashboard/vehicles/new')}>
+          <Plus size={17} />
+          Novo Veículo
         </Button>
       </div>
 
       {/* Search */}
-      <div className="flex gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar veículos..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      <div className="relative">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por marca, modelo..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors"
+        />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">Carregando...</div>
+          <div className="p-6 space-y-3">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
+          </div>
         ) : !data?.data.length ? (
-          <div className="p-12 text-center">
-            <Car size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500 font-medium">Nenhum veículo cadastrado</p>
-            <Button className="mt-4" onClick={() => router.push('/dashboard/vehicles/new')}>
-              Cadastrar primeiro veículo
+          <div className="p-16 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-muted mx-auto flex items-center justify-center mb-4">
+              <Car size={28} className="text-muted-foreground" />
+            </div>
+            <p className="font-medium text-foreground mb-1">Nenhum veículo cadastrado</p>
+            <p className="text-sm text-muted-foreground mb-4">Adicione seu primeiro veículo ao catálogo</p>
+            <Button variant="gradient" onClick={() => router.push('/dashboard/vehicles/new')}>
+              <Plus size={16} />
+              Cadastrar veículo
             </Button>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3">Veículo</th>
-                <th className="px-4 py-3">Ano / KM</th>
-                <th className="px-4 py-3">Preço</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Veículo</TableHead>
+                <TableHead>Ano / Km</TableHead>
+                <TableHead>Preço</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {data.data.map((v) => {
                 const title = vehicleTitle(v)
                 const coverImage = v.images?.[0]?.imageUrl
                 return (
-                  <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
+                  <TableRow key={v.id}>
+                    <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                        <div className="w-11 h-11 rounded-xl bg-gradient-primary flex-shrink-0 flex items-center justify-center overflow-hidden">
                           {coverImage ? (
                             <img
                               src={`${process.env.NEXT_PUBLIC_API_URL}${coverImage}`}
@@ -102,54 +114,62 @@ export default function VehiclesPage() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              <Car size={16} />
-                            </div>
+                            <Car className="text-white" size={18} />
                           )}
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{title}</p>
-                          <p className="text-xs text-gray-500">
-                            {v.color ? `${v.color} · ` : ''}{v.fuel?.name ?? ''}{v.transmission ? ` · ${v.transmission.name}` : ''}
+                          <p className="font-medium text-foreground">{title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {v.color && `${v.color} • `}
+                            {v.fuel?.name ?? ''}
+                            {v.transmission ? ` • ${v.transmission.name}` : ''}
                           </p>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {v.year} · {formatMileage(v.mileage)}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
+                    </TableCell>
+                    <TableCell className="font-semibold text-foreground">
                       {formatCurrency(v.price)}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell>
                       <VehicleStatusBadge status={v.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 justify-end">
-                        <button
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
                           onClick={() => router.push(`/dashboard/vehicles/${v.id}`)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
                         >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => confirmDelete(v.id, title)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          <Pencil size={15} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => setDeleteId(v.id)}
+                          title="Excluir"
                         >
-                          <Trash2 size={14} />
-                        </button>
+                          <Trash2 size={15} />
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
 
+        {/* Pagination */}
         {data && data.meta.lastPage > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm">
-            <p className="text-gray-500">Página {data.meta.page} de {data.meta.lastPage}</p>
+          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/30">
+            <p className="text-sm text-muted-foreground">
+              Página {data.meta.page} de {data.meta.lastPage}
+            </p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
                 Anterior
@@ -161,6 +181,33 @@ export default function VehiclesPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Dialog */}
+      <Dialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center mb-2">
+              <AlertCircle className="text-destructive" size={20} />
+            </div>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este veículo? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              loading={deleteMutation.isPending}
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

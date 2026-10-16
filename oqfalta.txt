@@ -1,0 +1,22 @@
+## O que falta implementar
+
+### 1. Gestão e Atribuição de Leads
+- [ ] Abas de navegação: **Novos (Fila Geral)** vs **Meus Leads**
+- [ ] Botão **Assumir Lead** (vincular lead ao atendente logado)
+- [ ] Opção de reatribuir ou devolver lead para a fila geral
+
+### 2. Ações Rápidas & Interação com o Lead
+- [ ] Botão de **WhatsApp direto** com mensagem predefinida
+- [ ] Botão de **Ligação rápida** (iniciar chamada telefônica nativa)
+- [ ] Histórico de interações / Observações internas (linha do tempo)
+- [ ] Adicionar nova nota/comentário rápido no lead
+
+### 3. Funil de Vendas & Mudança de Status
+- [ ] Alteração do Status do Lead (*Em Atendimento*, *Proposta Enviada*, *Fechado*, *Perdido*)
+- [ ] Registro de Motivo de Perda ao finalizar lead como perdido
+
+### 4. Agendamentos
+- [ ] Notificações Push para **Novos Leads**
+
+### 5. Dashboard do Atendente
+- [ ] Resumo diário (Leads assumidos hoje, leads sem contato, tarefas do dia)

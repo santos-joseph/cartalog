@@ -10,7 +10,7 @@ export const createLeadSchema = z.object({
 })
 
 export const updateLeadSchema = z.object({
-  statusId: z.string().optional(),
+  statusId: z.string().nullish(),
   assignedUserId: z.string().optional(),
 })
 
@@ -30,7 +30,16 @@ export const leadsFiltersSchema = z.object({
   order: z.enum(['asc', 'desc']).default('desc'),
 })
 
+export const createLeadStatusSchema = z.object({
+  name: z.string().min(1).max(100),
+  position: z.coerce.number().optional(),
+})
+
+export const updateLeadStatusSchema = createLeadStatusSchema.partial()
+
 export type CreateLeadInput = z.infer<typeof createLeadSchema>
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>
 export type CreateInteractionInput = z.infer<typeof createInteractionSchema>
 export type LeadsFilters = z.infer<typeof leadsFiltersSchema>
+export type CreateLeadStatusInput = z.infer<typeof createLeadStatusSchema>
+export type UpdateLeadStatusInput = z.infer<typeof updateLeadStatusSchema>

@@ -13,8 +13,9 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Must contain at least one number'),
 })
 
+// companySlug is optional: if omitted, it is extracted from the Host subdomain
 export const loginSchema = z.object({
-  companySlug: z.string().min(1),
+  companySlug: z.string().min(1).optional(),
   email: z.email(),
   password: z.string().min(1),
 })

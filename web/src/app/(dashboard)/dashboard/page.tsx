@@ -1,160 +1,193 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Car, MessageSquare, TrendingUp, Eye } from 'lucide-react'
+import { Car, MessageSquare, TrendingUp, BarChart3 } from 'lucide-react'
 import { dashboardService } from '@/services/dashboard.service'
-import { StatCard } from '@/components/ui/card'
 import { useAuthStore } from '@/stores/auth.store'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { DashboardOverview } from '@/types'
 
 function vehicleTitle(v: { model: { name: string; brand: { name: string } }; year: number }) {
-  return `${v.model.brand.name} ${v.model.name} ${v.year}`
+  return `${v.model.brand.name} ${v.model.name}`
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-32 rounded-2xl" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+      </div>
+    </div>
+  )
 }
 
 export default function DashboardPage() {
   const company = useAuthStore((s) => s.company)
-
   const { data, isLoading } = useQuery<DashboardOverview>({
     queryKey: ['dashboard'],
     queryFn: () => dashboardService.overview().then((r) => r.data),
   })
 
-  if (isLoading) {
-    return (
-      <div className="animate-pulse space-y-6">
-        <div className="h-8 bg-gray-200 rounded w-64" />
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-32 bg-gray-200 rounded-xl" />)}
-        </div>
-      </div>
-    )
-  }
-
+  if (isLoading) return <DashboardSkeleton />
   if (!data) return null
 
   const negotiating = data.leads.byStatus.find((s) => s.name === 'Negociando')?.count ?? 0
   const contacted = data.leads.byStatus.find((s) => s.name === 'Contactado')?.count ?? 0
 
+  const kpis = [
+    {
+      title: 'Veículos Disponíveis',
+      value: data.vehicles.available,
+      sub: `${data.vehicles.total} total`,
+      icon: Car,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+    },
+    {
+      title: 'Leads este Mês',
+      value: data.leads.newThisMonth,
+      sub: `${data.leads.total} total`,
+      icon: TrendingUp,
+      iconBg: 'bg-success/10',
+      iconColor: 'text-success',
+    },
+    {
+      title: 'Em Negociação',
+      value: negotiating,
+      sub: `${contacted} contactados`,
+      icon: MessageSquare,
+      iconBg: 'bg-warning/15',
+      iconColor: 'text-warning-foreground',
+    },
+    {
+      title: 'Vendidos',
+      value: data.vehicles.sold,
+      sub: `${data.vehicles.reserved} reservados`,
+      icon: BarChart3,
+      iconBg: 'bg-muted',
+      iconColor: 'text-muted-foreground',
+    },
+  ]
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">{company?.name}</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Veículos disponíveis"
-          value={data.vehicles.available}
-          icon={<Car size={20} />}
-          change={`${data.vehicles.total} total`}
-          changeType="neutral"
-        />
-        <StatCard
-          title="Leads este mês"
-          value={data.leads.newThisMonth}
-          icon={<TrendingUp size={20} />}
-          change={`${data.leads.total} total`}
-          changeType="neutral"
-        />
-        <StatCard
-          title="Em negociação"
-          value={negotiating}
-          icon={<MessageSquare size={20} />}
-          change={`${contacted} contactados`}
-          changeType="neutral"
-        />
-        <StatCard
-          title="Veículos vendidos"
-          value={data.vehicles.sold}
-          icon={<Eye size={20} />}
-          change={`${data.vehicles.reserved} reservados`}
-          changeType="neutral"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top viewed vehicles */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Veículos mais vistos</h3>
-          {data.topViewedVehicles.length === 0 ? (
-            <p className="text-sm text-gray-500">Nenhum veículo cadastrado ainda</p>
-          ) : (
-            <div className="space-y-3">
-              {data.topViewedVehicles.map((v) => (
-                <div key={v.id} className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                    {v.images[0]?.imageUrl ? (
-                      <img src={`${process.env.NEXT_PUBLIC_API_URL}${v.images[0].imageUrl}`} alt={vehicleTitle(v)} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <Car size={20} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{vehicleTitle(v)}</p>
-                    <p className="text-xs text-gray-500">{v.year} · {formatCurrency(v.price)}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <Eye size={12} />
-                    {v.viewCount}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent leads */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Leads recentes</h3>
-          {data.recentLeads.length === 0 ? (
-            <p className="text-sm text-gray-500">Nenhum lead ainda</p>
-          ) : (
-            <div className="space-y-3">
-              {data.recentLeads.map((lead) => (
-                <div key={lead.id} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-sm font-semibold flex-shrink-0">
-                    {lead.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{lead.name}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {lead.vehicle ? vehicleTitle(lead.vehicle) : 'Sem veículo'} · {formatRelativeDate(lead.createdAt)}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-500 shrink-0">{lead.status?.name ?? '—'}</span>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Header */}
+      <div className="bg-gradient-primary rounded-2xl p-8 text-white relative overflow-hidden">
+        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
+        <div className="absolute -bottom-12 right-24 w-32 h-32 rounded-full bg-white/5" />
+        <div className="relative">
+          <h1 className="text-3xl font-bold mb-1">Bem-vindo de volta 👋</h1>
+          <p className="text-white/70 text-sm">Confira o desempenho do catálogo de <span className="font-semibold text-white">{company?.name}</span></p>
         </div>
       </div>
 
-      {/* Funil de leads */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Funil de vendas</h3>
-        <div className="flex gap-3 flex-wrap">
-          {data.leads.byStatus.map((step, i) => {
-            const colors = [
-              'bg-purple-100 text-purple-700',
-              'bg-yellow-100 text-yellow-700',
-              'bg-blue-100 text-blue-700',
-              'bg-green-100 text-green-700',
-              'bg-red-100 text-red-700',
-            ]
-            return (
-              <div key={step.id} className={`rounded-lg p-4 text-center flex-1 min-w-[80px] ${colors[i % colors.length]}`}>
-                <p className="text-2xl font-bold">{step.count}</p>
-                <p className="text-xs font-medium mt-1">{step.name}</p>
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((item) => {
+          const Icon = item.icon
+          return (
+            <Card key={item.title} className="p-6 hover:shadow-md transition-shadow">
+              <div className={`w-11 h-11 rounded-xl ${item.iconBg} flex items-center justify-center mb-4`}>
+                <Icon className={`${item.iconColor}`} size={22} />
               </div>
-            )
-          })}
-        </div>
+              <p className="text-muted-foreground text-sm font-medium mb-1">{item.title}</p>
+              <p className="text-3xl font-bold text-foreground">{item.value}</p>
+              <p className="text-xs text-muted-foreground mt-2">{item.sub}</p>
+            </Card>
+          )
+        })}
       </div>
+
+      {/* Top Vehicles + Recent Leads */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <div className="p-6 pb-4 flex items-center gap-2 border-b border-border">
+            <Car className="text-primary" size={18} />
+            <h3 className="font-semibold text-foreground">Veículos Mais Vistos</h3>
+          </div>
+          <div className="p-4">
+            {data.topViewedVehicles.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground text-sm">
+                Nenhum veículo com visualizações ainda
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {data.topViewedVehicles.map((v) => (
+                  <div key={v.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent transition-colors">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex-shrink-0 flex items-center justify-center">
+                      <Car className="text-white" size={17} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{vehicleTitle(v)} {v.year}</p>
+                      <p className="text-xs text-muted-foreground">{formatCurrency(v.price)}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-semibold text-foreground text-sm">{v.viewCount}</p>
+                      <p className="text-xs text-muted-foreground">views</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-6 pb-4 flex items-center gap-2 border-b border-border">
+            <MessageSquare className="text-primary" size={18} />
+            <h3 className="font-semibold text-foreground">Leads Recentes</h3>
+          </div>
+          <div className="p-4">
+            {data.recentLeads.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground text-sm">Nenhum lead ainda</div>
+            ) : (
+              <div className="space-y-1">
+                {data.recentLeads.map((lead) => (
+                  <div key={lead.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent transition-colors">
+                    <div className="w-9 h-9 rounded-full bg-gradient-primary flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                      {lead.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm">{lead.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatRelativeDate(lead.createdAt)}</p>
+                    </div>
+                    <Badge variant="muted">{lead.status?.name ?? '—'}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Sales Funnel */}
+      {data.leads.byStatus.length > 0 && (
+        <Card>
+          <div className="p-6 pb-4 flex items-center gap-2 border-b border-border">
+            <BarChart3 className="text-primary" size={18} />
+            <h3 className="font-semibold text-foreground">Funil de Vendas</h3>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {data.leads.byStatus.map((status, i) => (
+                <div key={status.id} className="relative">
+                  <div className="bg-accent rounded-xl p-4 text-center border border-border">
+                    <p className="text-2xl font-bold text-primary">{status.count}</p>
+                    <p className="text-xs font-medium text-muted-foreground mt-1">{status.name}</p>
+                  </div>
+                  {i < data.leads.byStatus.length - 1 && (
+                    <div className="hidden md:block absolute -right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-lg z-10">›</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

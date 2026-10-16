@@ -30,20 +30,20 @@ export class CompaniesService {
     if (!company) throw new NotFoundError('Company')
 
     return {
-      primaryColor: company.primaryColor ?? '#2563EB',
-      secondaryColor: company.secondaryColor ?? '#1E40AF',
-      whatsapp: company.whatsapp ?? null,
-      phone: company.phone ?? null,
-      email: company.email ?? null,
+      primaryColor: company.primaryColor || '#DC2626',
+      secondaryColor: company.secondaryColor || '#991B1B',
+      whatsapp: company.whatsapp || null,
+      phone: company.phone || null,
+      email: company.email || null,
       showPrices: siteSettings?.showPrices ?? true,
       showWhatsappButton: siteSettings?.showWhatsappButton ?? true,
       siteTitle: seoSettings?.metaTitle ?? null,
       siteDescription: seoSettings?.metaDescription ?? null,
       siteKeywords: seoSettings?.metaKeywords ?? null,
-      address: location?.address ?? null,
-      city: location?.city ?? null,
-      state: location?.state ?? null,
-      zipCode: location?.zipCode ?? null,
+      address: location?.address || null,
+      city: location?.city || null,
+      state: location?.state || null,
+      zipCode: location?.zipCode || null,
     }
   }
 
@@ -90,18 +90,26 @@ export class CompaniesService {
           metaKeywords: siteKeywords ?? null,
         },
       }),
-
-      (address || city || state || zipCode) ? prisma.companyLocation.upsert({
-        where: { id: await this.getLocationId(companyId) },
-        update: {
-          ...(address !== undefined && { address }),
-          ...(city !== undefined && { city }),
-          ...(state !== undefined && { state }),
-          ...(zipCode !== undefined && { zipCode }),
-        },
-        create: { companyId, address, city, state, zipCode },
-      }).catch(() => null) : Promise.resolve(),
     ])
+
+    if (address !== undefined || city !== undefined || state !== undefined || zipCode !== undefined) {
+      const existingLocation = await prisma.companyLocation.findFirst({ where: { companyId } })
+      if (existingLocation) {
+        await prisma.companyLocation.update({
+          where: { id: existingLocation.id },
+          data: {
+            ...(address !== undefined && { address }),
+            ...(city !== undefined && { city }),
+            ...(state !== undefined && { state }),
+            ...(zipCode !== undefined && { zipCode }),
+          },
+        })
+      } else {
+        await prisma.companyLocation.create({
+          data: { companyId, address, city, state, zipCode },
+        })
+      }
+    }
 
     return this.getSettings(companyId)
   }
@@ -189,10 +197,6 @@ export class CompaniesService {
     return page
   }
 
-  private async getLocationId(companyId: string): Promise<string> {
-    const loc = await prisma.companyLocation.findFirst({ where: { companyId } })
-    return loc?.id ?? ''
-  }
 }
 
 export const companiesService = new CompaniesService()

@@ -68,15 +68,18 @@ async function main() {
   // ---- Demo Company ----
   const company = await prisma.company.upsert({
     where: { slug: 'demo-motors' },
-    update: {},
+    update: {
+      primaryColor: '#DC2626',
+      secondaryColor: '#991B1B',
+    },
     create: {
       name: 'Demo Motors',
       slug: 'demo-motors',
       email: 'contato@demo-motors.com.br',
       phone: '(11) 99999-9999',
       whatsapp: '5511999999999',
-      primaryColor: '#2563EB',
-      secondaryColor: '#1E40AF',
+      primaryColor: '#DC2626',
+      secondaryColor: '#991B1B',
       description: 'Os melhores veículos da região',
     },
   })

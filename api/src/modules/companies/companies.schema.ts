@@ -4,21 +4,21 @@ export const updateSettingsSchema = z.object({
   // Company fields
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  whatsapp: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().optional(),
+  whatsapp: z.string().nullish(),
+  phone: z.string().nullish(),
+  email: z.string().nullish(),
   // SiteSettings
   showPrices: z.boolean().optional(),
   showWhatsappButton: z.boolean().optional(),
   // SeoSettings
-  siteTitle: z.string().max(200).optional(),
-  siteDescription: z.string().max(500).optional(),
-  siteKeywords: z.string().max(500).optional(),
+  siteTitle: z.string().max(200).nullish(),
+  siteDescription: z.string().max(500).nullish(),
+  siteKeywords: z.string().max(500).nullish(),
   // CompanyLocation
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().max(2).optional(),
-  zipCode: z.string().optional(),
+  address: z.string().nullish(),
+  city: z.string().nullish(),
+  state: z.string().max(2).nullish(),
+  zipCode: z.string().nullish(),
 })
 
 export const createBannerSchema = z.object({

@@ -10,9 +10,13 @@ import {
 import { authMiddleware, requireRole } from '../../shared/middlewares/auth.middleware'
 import { AppError } from '../../shared/errors/app-error'
 import { uploadsService } from '../uploads/uploads.service'
+import { categoriesRoutes } from './categories.routes'
 
 export async function companiesRoutes(app: FastifyInstance) {
   app.addHook('onRequest', authMiddleware)
+
+  // Sub-routers
+  app.register(categoriesRoutes, { prefix: '/categories' })
 
   // GET /companies/me
   app.get('/me', async (request) => {
@@ -60,6 +64,16 @@ export async function companiesRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     await companiesService.deleteBanner(request.user.companyId, id)
     return reply.status(204).send()
+  })
+
+  // POST /companies/banners/:id/image — upload de imagem do banner via multipart
+  app.post('/banners/:id/image', { onRequest: [requireRole('ADMIN', 'MANAGER')] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const file = await request.file()
+    if (!file) throw new AppError('Image file is required')
+    const url = await uploadsService.saveFile(file, 'banners')
+    const banner = await companiesService.updateBanner(request.user.companyId, id, { imageUrl: url })
+    return reply.send(banner)
   })
 
   // ---- PAGES ----

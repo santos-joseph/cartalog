@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { authService } from './auth.service'
 import { registerSchema, loginSchema, refreshSchema } from './auth.schema'
 import { authMiddleware } from '../../shared/middlewares/auth.middleware'
+import { extractSlugFromHost } from '../../shared/middlewares/tenant.middleware'
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/register', async (request, reply) => {
@@ -12,7 +13,9 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post('/login', async (request, reply) => {
     const body = loginSchema.parse(request.body)
-    const result = await authService.login(body)
+    const host = request.headers.host ?? ''
+    const slugFromHost = extractSlugFromHost(host)
+    const result = await authService.login(body, slugFromHost)
     return reply.send(result)
   })
 

@@ -84,7 +84,7 @@ export default function TeamPage() {
             <Input label="Senha" type="password" value={form.password} onChange={set('password')} required helper="Mínimo 8 caracteres, 1 maiúscula e 1 número" />
             <div>
               <label className="text-sm font-medium text-gray-700">Função</label>
-              <select value={form.role} onChange={set('role')} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select value={form.role} onChange={set('role')} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
                 <option value="SELLER">Vendedor</option>
                 <option value="MANAGER">Gerente</option>
                 <option value="ADMIN">Administrador</option>
@@ -123,7 +123,7 @@ export default function TeamPage() {
                 <tr key={m.id}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 font-semibold text-sm flex items-center justify-center">
                         {m.name.charAt(0)}
                       </div>
                       <div>
@@ -133,7 +133,7 @@ export default function TeamPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant={m.role === 'ADMIN' ? 'default' : m.role === 'MANAGER' ? 'warning' : 'gray'}>
+                    <Badge variant={m.role === 'ADMIN' ? 'default' : m.role === 'MANAGER' ? 'warning' : 'muted'}>
                       {roleLabels[m.role] ?? m.role}
                     </Badge>
                   </td>

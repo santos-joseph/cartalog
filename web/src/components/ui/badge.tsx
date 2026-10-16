@@ -1,48 +1,49 @@
+import * as React from 'react'
+import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
-type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'gray'
+const badgeVariants = cva(
+  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary/10 text-primary',
+        secondary: 'bg-secondary text-secondary-foreground',
+        success: 'bg-success/10 text-success',
+        warning: 'bg-warning/15 text-warning-foreground',
+        destructive: 'bg-destructive/10 text-destructive',
+        outline: 'border border-border text-foreground',
+        muted: 'bg-muted text-muted-foreground',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  },
+)
 
-const variants: Record<BadgeVariant, string> = {
-  default: 'bg-blue-100 text-blue-800',
-  success: 'bg-green-100 text-green-800',
-  warning: 'bg-yellow-100 text-yellow-800',
-  danger: 'bg-red-100 text-red-800',
-  info: 'bg-purple-100 text-purple-800',
-  gray: 'bg-gray-100 text-gray-800',
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />
 }
 
-interface BadgeProps {
-  children: React.ReactNode
-  variant?: BadgeVariant
-  className?: string
-}
-
-export function Badge({ children, variant = 'default', className }: BadgeProps) {
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-        variants[variant],
-        className,
-      )}
-    >
-      {children}
-    </span>
-  )
-}
-
-export function LeadStatusBadge({ status }: { status: { name: string } | null | string }) {
-  const name = typeof status === 'string' ? status : status?.name ?? 'Sem status'
-  return <Badge variant="gray">{name}</Badge>
-}
-
-export function VehicleStatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; variant: BadgeVariant }> = {
+function VehicleStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
     available: { label: 'Disponível', variant: 'success' },
-    sold: { label: 'Vendido', variant: 'danger' },
+    sold: { label: 'Vendido', variant: 'destructive' },
     reserved: { label: 'Reservado', variant: 'warning' },
-    inactive: { label: 'Inativo', variant: 'gray' },
+    inactive: { label: 'Inativo', variant: 'muted' },
   }
-  const config = map[status.toLowerCase()] ?? { label: status, variant: 'gray' as BadgeVariant }
+  const config = map[status.toLowerCase()] ?? { label: status, variant: 'muted' as const }
   return <Badge variant={config.variant}>{config.label}</Badge>
 }
+
+function LeadStatusBadge({ status }: { status: { name: string } | string | null }) {
+  const name = typeof status === 'string' ? status : (status?.name ?? 'Sem status')
+  return <Badge variant="muted">{name}</Badge>
+}
+
+export { Badge, badgeVariants, VehicleStatusBadge, LeadStatusBadge }

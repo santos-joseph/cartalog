@@ -31,7 +31,20 @@ const app = Fastify({
 async function bootstrap() {
   // ---- Plugins ----
   await app.register(cors, {
-    origin: env.NODE_ENV === 'production' ? [env.FRONTEND_URL] : true,
+    origin:
+      env.NODE_ENV === 'production'
+        ? (origin, cb) => {
+            if (
+              !origin ||
+              origin === `https://${env.BASE_DOMAIN}` ||
+              origin.endsWith(`.${env.BASE_DOMAIN}`)
+            ) {
+              cb(null, true)
+            } else {
+              cb(new Error('CORS not allowed'), false)
+            }
+          }
+        : true,
     credentials: true,
   })
 
@@ -51,7 +64,7 @@ async function bootstrap() {
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.0',
-      info: { title: 'Cartalog API', description: 'SaaS de catalogação de veículos', version: '1.0.0' },
+      info: { title: 'Cartalog API', description: 'SaaS de catalogação de veículos', version: '2.0.0' },
       components: {
         securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },
       },
@@ -90,6 +103,7 @@ async function bootstrap() {
 
   app.log.info(`🚀 API running at http://localhost:${env.PORT}`)
   app.log.info(`📚 Docs available at http://localhost:${env.PORT}/docs`)
+  app.log.info(`🌐 Base domain: ${env.BASE_DOMAIN}`)
 }
 
 bootstrap().catch((err) => {

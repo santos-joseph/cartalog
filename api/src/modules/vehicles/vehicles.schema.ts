@@ -1,15 +1,26 @@
 import { z } from 'zod'
 
+// Campos de ID opcionais — converte string vazia para undefined para não quebrar FK no Prisma
+const optionalId = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.string().optional(),
+)
+
+const optionalText = z.preprocess(
+  (v) => (v === '' || v == null ? undefined : v),
+  z.string().optional(),
+)
+
 export const createVehicleSchema = z.object({
   modelId: z.string().min(1),
-  categoryId: z.string().optional(),
-  fuelId: z.string().optional(),
-  transmissionId: z.string().optional(),
+  categoryId: optionalId,
+  fuelId: optionalId,
+  transmissionId: optionalId,
   year: z.coerce.number().min(1950).max(new Date().getFullYear() + 1),
   mileage: z.coerce.number().min(0).default(0),
   price: z.coerce.number().positive(),
-  color: z.string().optional(),
-  description: z.string().optional(),
+  color: optionalText,
+  description: optionalText,
   featureIds: z.array(z.string()).default([]),
 })
 

@@ -1,29 +1,60 @@
+import * as React from 'react'
 import { cn } from '@/lib/utils'
 
-interface CardProps {
-  children: React.ReactNode
-  className?: string
-  padding?: 'none' | 'sm' | 'md' | 'lg'
-}
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        'rounded-xl border border-border bg-card text-card-foreground shadow-sm',
+        className,
+      )}
+      {...props}
+    />
+  ),
+)
+Card.displayName = 'Card'
 
-const paddings = { none: '', sm: 'p-4', md: 'p-6', lg: 'p-8' }
+const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('flex flex-col gap-1.5 p-6', className)} {...props} />
+  ),
+)
+CardHeader.displayName = 'CardHeader'
 
-export function Card({ children, className, padding = 'md' }: CardProps) {
-  return (
-    <div className={cn('bg-white rounded-xl border border-gray-200 shadow-sm', paddings[padding], className)}>
-      {children}
-    </div>
-  )
-}
+const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('text-base font-semibold leading-none tracking-tight', className)}
+      {...props}
+    />
+  ),
+)
+CardTitle.displayName = 'CardTitle'
 
-export function CardHeader({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('flex items-center justify-between mb-4', className)}>{children}</div>
-}
+const CardDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('text-sm text-muted-foreground', className)} {...props} />
+  ),
+)
+CardDescription.displayName = 'CardDescription'
 
-export function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={cn('text-base font-semibold text-gray-900', className)}>{children}</h3>
-}
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  ),
+)
+CardContent.displayName = 'CardContent'
 
+const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('flex items-center p-6 pt-0', className)} {...props} />
+  ),
+)
+CardFooter.displayName = 'CardFooter'
+
+// Legacy StatCard for backward compatibility
 interface StatCardProps {
   title: string
   value: string | number
@@ -32,20 +63,20 @@ interface StatCardProps {
   changeType?: 'up' | 'down' | 'neutral'
 }
 
-export function StatCard({ title, value, icon, change, changeType }: StatCardProps) {
+function StatCard({ title, value, icon, change, changeType }: StatCardProps) {
   return (
-    <Card>
+    <Card className="p-6">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
           {change && (
             <p
               className={cn(
                 'text-xs mt-1',
-                changeType === 'up' && 'text-green-600',
-                changeType === 'down' && 'text-red-600',
-                changeType === 'neutral' && 'text-gray-500',
+                changeType === 'up' && 'text-success',
+                changeType === 'down' && 'text-destructive',
+                changeType === 'neutral' && 'text-muted-foreground',
               )}
             >
               {change}
@@ -53,7 +84,7 @@ export function StatCard({ title, value, icon, change, changeType }: StatCardPro
           )}
         </div>
         {icon && (
-          <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+          <div className="p-2 bg-accent rounded-lg text-primary">
             {icon}
           </div>
         )}
@@ -61,3 +92,5 @@ export function StatCard({ title, value, icon, change, changeType }: StatCardPro
     </Card>
   )
 }
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, StatCard }
