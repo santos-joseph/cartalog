@@ -14,7 +14,7 @@ type AuthContextValue = {
   bootError: string | null
   session: Session | null
   apiUrl: string
-  login: (input: { companySlug: string; email: string; password: string; apiUrl: string }) => Promise<void>
+  login: (input: { email: string; password: string; apiUrl: string }) => Promise<void>
   logout: () => Promise<void>
   retryRestore: () => Promise<void>
   request: <T>(path: string, init?: RequestInit) => Promise<T>
@@ -81,11 +81,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { void retryRestore() }, [retryRestore])
 
-  const login = useCallback(async ({ companySlug, email, password, apiUrl: enteredUrl }: Parameters<AuthContextValue['login']>[0]) => {
+  const login = useCallback(async ({ email, password, apiUrl: enteredUrl }: Parameters<AuthContextValue['login']>[0]) => {
     const nextUrl = normalizeApiUrl(enteredUrl)
     const result = await apiFetch<LoginResult>(nextUrl, '/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ companySlug: companySlug.trim().toLowerCase(), email: email.trim().toLowerCase(), password }),
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
     })
     if (result.user.role !== 'SELLER') throw new Error('Este aplicativo é para vendedores. O dono usa o app desktop.')
     await Promise.all([storage.set(API_URL_KEY, nextUrl), storage.set(REFRESH_KEY, result.refreshToken)])

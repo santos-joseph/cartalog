@@ -1,10 +1,22 @@
 export type Owner = { id: string; name: string; email: string; role: 'OWNER' }
 export type Company = { id: string; name: string; slug: string; logoUrl?: string | null }
-export type DesktopSession = { user: Owner; company: Company }
+export type PlatformUser = { id: string; name: string; email: string; role: 'PLATFORM_OWNER' | 'PLATFORM_ADMIN'; isActive?: boolean; createdAt?: string }
+export type StoreDesktopSession = { scope: 'company'; user: Owner; company: Company }
+export type PlatformDesktopSession = { scope: 'platform'; user: PlatformUser }
+export type DesktopSession = StoreDesktopSession | PlatformDesktopSession
 export type Bootstrap = { session: DesktopSession | null; apiOrigin: string; webBaseUrl: string }
 export type Seller = { id: string; name: string; email: string; role: 'SELLER' | 'OWNER'; isActive: boolean; createdAt: string }
 
-export type LoginInput = { companySlug: string; email: string; password: string }
+export type LoginInput = { email: string; password: string }
+export type PlatformOverview = { companies: number; demoRequests: number; activeSubscriptions: number; plans: number }
+export type PlatformPlan = { id: string; code: string; name: string; priceCents: number; billingInterval: string; isActive: boolean; _count?: { subscriptions: number } }
+export type PlatformSubscription = { planId: string; status: string; currentPeriodEnd: string | null; notes: string | null; plan: PlatformPlan }
+export type PlatformCompany = { id: string; name: string; slug: string; email: string; createdAt: string; users: { name: string; email: string }[]; subscription: PlatformSubscription | null; siteSettings: { maintenanceEnabled: boolean } | null; _count: { vehicles: number; leads: number; users: number } }
+export type DemoRequest = { id: string; name: string; email: string; companyName?: string | null; phone?: string | null; message?: string | null; createdAt: string }
+export type PlatformAudit = { id: string; action: string; target: string; createdAt: string; actor: { name: string; email: string } }
+export type PlatformCompanyInput = { companyName: string; companyEmail: string; companyPhone?: string; userName: string; userEmail: string; password: string; planId?: string }
+export type PlatformPlanInput = { code: string; name: string; priceCents: number; billingInterval: 'monthly' | 'yearly'; isActive: boolean }
+export type PlatformSubscriptionInput = { planId: string; status: 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled'; currentPeriodEnd: string | null; notes: string | null }
 export type SellerInput = { name: string; email: string; password: string }
 
 export type StoreSettings = {
@@ -85,6 +97,20 @@ export interface CartalogBridge {
   bootstrap(): Promise<Bootstrap>
   login(input: LoginInput): Promise<DesktopSession>
   logout(): Promise<true>
+  platform: {
+    overview(): Promise<PlatformOverview>
+    companies(): Promise<PlatformCompany[]>
+    createCompany(input: PlatformCompanyInput): Promise<unknown>
+    plans(): Promise<PlatformPlan[]>
+    createPlan(input: PlatformPlanInput): Promise<PlatformPlan>
+    updatePlan(id: string, input: Partial<PlatformPlanInput>): Promise<PlatformPlan>
+    updateSubscription(id: string, input: PlatformSubscriptionInput): Promise<PlatformSubscription>
+    requests(): Promise<DemoRequest[]>
+    admins(): Promise<PlatformUser[]>
+    createAdmin(input: { name: string; email: string; password: string }): Promise<PlatformUser>
+    setAdminActive(id: string, input: { isActive: boolean }): Promise<PlatformUser>
+    audit(): Promise<PlatformAudit[]>
+  }
   catalog: { open(): Promise<true> }
   team: {
     list(): Promise<Seller[]>

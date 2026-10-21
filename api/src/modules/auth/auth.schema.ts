@@ -2,10 +2,10 @@ import { z } from 'zod'
 
 export const registerSchema = z.object({
   companyName: z.string().min(2).max(100),
-  companyEmail: z.email(),
+  companyEmail: z.email().transform((value) => value.trim().toLowerCase()),
   companyPhone: z.string().optional(),
   userName: z.string().min(2).max(100),
-  userEmail: z.email(),
+  userEmail: z.email().transform((value) => value.trim().toLowerCase()),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -13,10 +13,8 @@ export const registerSchema = z.object({
     .regex(/[0-9]/, 'Must contain at least one number'),
 })
 
-// companySlug is optional: if omitted, it is extracted from the Host subdomain
 export const loginSchema = z.object({
-  companySlug: z.string().min(1).optional(),
-  email: z.email(),
+  email: z.email().transform((value) => value.trim().toLowerCase()),
   password: z.string().min(1),
 })
 

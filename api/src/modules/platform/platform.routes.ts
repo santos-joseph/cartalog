@@ -121,8 +121,11 @@ export async function platformRoutes(app: FastifyInstance) {
 
     privateApp.post('/admins', { onRequest: [requirePlatformOwner] }, async (request, reply) => {
       const input = adminSchema.parse(request.body)
-      const exists = await prisma.platformUser.findUnique({ where: { email: input.email } })
-      if (exists) throw new ConflictError('Administrador')
+      const [exists, storeUser] = await Promise.all([
+        prisma.platformUser.findUnique({ where: { email: input.email } }),
+        prisma.user.findUnique({ where: { email: input.email } }),
+      ])
+      if (exists || storeUser) throw new ConflictError('Este e-mail já pertence a outra conta')
       const admin = await prisma.platformUser.create({
         data: { name: input.name, email: input.email, passwordHash: await bcrypt.hash(input.password, 12), role: 'PLATFORM_ADMIN' },
         select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },

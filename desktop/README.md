@@ -1,10 +1,11 @@
 # Cartalog Desktop
 
-Aplicativo Electron para o **dono da loja**. O estoque pode ser gerenciado pelo desktop ou pela web; vendedores atendem pela web e pelo mobile.
+Aplicativo Electron para o **dono da loja e a equipe global Cartalog**. O login usa apenas e-mail e senha e abre o espaço correspondente à conta. O estoque pode ser gerenciado pelo desktop ou pela web; vendedores atendem pela web e pelo mobile.
 
 ## Funcionalidades
 
-- Entrar com uma conta de dono existente.
+- Entrar com uma conta de dono da loja ou administrador global existente.
+- Gerenciar empresas, planos, assinaturas, pedidos de demonstração, administradores e auditoria no espaço global.
 - Cadastrar, renomear, desativar e reativar vendedores. Ao desativar, a API devolve os leads atribuídos à fila.
 - Configurar logo, cores, contatos, endereço, opções do catálogo e informações para busca.
 - Cadastrar e editar veículos, fotos, opcionais, categoria e status do estoque.
@@ -39,11 +40,11 @@ O instalador Windows é gerado em `desktop/release/`. O pacote atual não é ass
 
 ## Segurança da sessão
 
-O Electron usa `contextIsolation` e sandbox. A interface recebe apenas funções específicas do processo principal; não recebe tokens nem acesso livre ao Node.js. O refresh token é salvo criptografado com o cofre do sistema quando o Electron consegue usá-lo. Sem esse recurso, a sessão funciona até o app fechar.
+O Electron usa `contextIsolation` e sandbox. A interface recebe apenas funções específicas do processo principal; não recebe tokens nem acesso livre ao Node.js. O refresh token da loja ou token de acesso global é salvo criptografado com o cofre do sistema quando o Electron consegue usá-lo. Sem esse recurso, a sessão funciona até o app fechar; o token global expira em 8 horas.
 
 ## Notas da API
 
-- A equipe Cartalog cria a empresa e o dono pelo painel global em `/platform`; `npm run account:create` fica como recurso de recuperação. O desktop oferece somente login.
+- A equipe Cartalog cria a empresa e o dono pelo painel global na web ou no desktop; `npm run account:create` fica como recurso de recuperação.
 - O dono pode ligar e desligar a manutenção do catálogo público na tela de configurações. A API registra cada mudança.
 - `POST /api/v1/users` aceita apenas `SELLER` e exige `OWNER`.
 - `GET/PUT /api/v1/companies/settings` salva personalização e contatos.

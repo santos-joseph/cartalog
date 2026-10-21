@@ -36,15 +36,17 @@ export class UsersService {
   }
 
   async create(companyId: string, input: CreateUserInput) {
-    const existing = await prisma.user.findUnique({
-      where: { companyId_email: { companyId, email: input.email } },
-    })
-    if (existing) throw new ConflictError(`User with email "${input.email}"`)
+    const email = input.email.trim().toLowerCase()
+    const [existing, platformUser] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.platformUser.findUnique({ where: { email } }),
+    ])
+    if (existing || platformUser) throw new ConflictError('Este e-mail já pertence a outra conta')
 
     const passwordHash = await bcrypt.hash(input.password, 12)
 
     return prisma.user.create({
-      data: { companyId, name: input.name, email: input.email, role: input.role, passwordHash },
+      data: { companyId, name: input.name, email, role: input.role, passwordHash },
       select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
     })
   }

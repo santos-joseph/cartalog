@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight, BookOpenText, Building2, CheckCircle2, Circle, Globe2, Palette, ShieldCheck, UsersRound } from 'lucide-react'
-import type { Company, DesktopSession, Seller, StoreSettings } from '../types'
+import type { Company, StoreDesktopSession, Seller, StoreSettings } from '../types'
 import { Button, errorText, imageUrl, PageHeading, Spinner } from '../ui'
 
 type View = 'overview' | 'team' | 'settings' | 'content'
 
-export function OverviewPage({ session, apiOrigin, onNavigate, notify }: { session: DesktopSession; apiOrigin: string; onNavigate: (view: View) => void; notify: (text: string, kind?: 'success' | 'error') => void }) {
+export function OverviewPage({ session, apiOrigin, onNavigate, notify }: { session: StoreDesktopSession; apiOrigin: string; onNavigate: (view: View) => void; notify: (text: string, kind?: 'success' | 'error') => void }) {
   const [team, setTeam] = useState<Seller[] | null>(null)
   const [settings, setSettings] = useState<StoreSettings | null>(null)
   const [company, setCompany] = useState<Company | null>(null)

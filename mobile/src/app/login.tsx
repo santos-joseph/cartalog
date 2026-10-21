@@ -9,7 +9,6 @@ import { errorMessage } from '@/lib/api'
 
 export default function LoginScreen() {
   const { login, apiUrl: savedApiUrl } = useAuth()
-  const [companySlug, setCompanySlug] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [apiUrl, setApiUrl] = useState(savedApiUrl)
@@ -18,10 +17,10 @@ export default function LoginScreen() {
   const [error, setError] = useState('')
 
   async function submit() {
-    if (!companySlug.trim() || !email.trim() || !password) return setError('Preencha loja, e-mail e senha.')
+    if (!email.trim() || !password) return setError('Preencha e-mail e senha.')
     setLoading(true)
     setError('')
-    try { await login({ companySlug, email, password, apiUrl }) }
+    try { await login({ email, password, apiUrl }) }
     catch (cause) {
       const message = errorMessage(cause)
       setError(message)
@@ -41,7 +40,6 @@ export default function LoginScreen() {
         <View style={styles.card}>
           <View style={styles.cardTop}><View style={styles.lockIcon}><LockKeyhole size={18} color={colors.red} /></View><View><Text style={styles.cardTitle}>Acesse sua carteira</Text><Text style={styles.cardSubtitle}>Use a conta criada pelo dono da loja.</Text></View></View>
           <View style={styles.fields}>
-            <Field label="Identificador da loja" placeholder="Ex.: demo-motors" value={companySlug} onChangeText={setCompanySlug} autoCapitalize="none" autoCorrect={false} returnKeyType="next" />
             <Field label="E-mail" placeholder="voce@loja.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoComplete="email" returnKeyType="next" />
             <Field label="Senha" placeholder="Sua senha" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" returnKeyType="done" onSubmitEditing={() => void submit()} />
           </View>

@@ -4,7 +4,7 @@ Aplicativo React Native/Expo para vendedores cadastrados pelo dono no Cartalog D
 
 ## O que já funciona
 
-- Login com identificador da loja, e-mail e senha; contas de dono são recusadas.
+- Login apenas com e-mail e senha; contas de dono são recusadas.
 - Sessão nativa guardada no Expo SecureStore, com renovação automática do token.
 - Fila de leads e carteira do vendedor com busca, filtros de status, atualização e paginação.
 - Assumir e devolver leads à fila.
@@ -31,7 +31,7 @@ As permissões são aplicadas também pela API: só o vendedor atribuído pode r
 
 No Expo Go pela rede local, o app detecta o IP do computador pelo servidor Expo e usa a porta `3333` para a API. No **emulador Android** sem essa detecção, usa `http://10.0.2.2:3333`; no **simulador iOS**, `http://localhost:3333`. Em **celular físico**, computador e aparelho precisam estar na mesma rede. Se a detecção não funcionar (por exemplo, com túnel), abra “Configurar endereço da API” no login e informe `http://IP_DO_COMPUTADOR:3333`. Também é possível criar `.env.local` com `EXPO_PUBLIC_API_URL` seguindo `.env.example`.
 
-O nome da loja no login é o slug do catálogo, por exemplo `demo-motors`. O vendedor precisa ter sido criado e estar ativo. O servidor aceita HTTP na rede local para desenvolvimento; use HTTPS para distribuição externa.
+O vendedor precisa ter sido criado e estar ativo. A API identifica sua loja pelo e-mail da conta. O servidor aceita HTTP na rede local para desenvolvimento; use HTTPS para distribuição externa.
 
 ## Verificações
 

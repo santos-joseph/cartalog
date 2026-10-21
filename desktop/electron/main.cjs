@@ -25,8 +25,10 @@ if (webOrigin.protocol !== 'https:' && !(webOrigin.protocol === 'http:' && ['loc
 let mainWindow = null
 let accessToken = null
 let refreshToken = null
+let platformToken = null
 let currentUser = null
 let currentCompany = null
+let currentScope = null
 
 const sessionPath = () => path.join(app.getPath('userData'), 'session.enc')
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -37,7 +39,11 @@ function requireId(value) {
 }
 
 function requireOwner() {
-  if (!accessToken || currentUser?.role !== 'OWNER') throw new Error('Acesso restrito ao dono da loja.')
+  if (currentScope !== 'company' || !accessToken || currentUser?.role !== 'OWNER') throw new Error('Acesso restrito ao dono da loja.')
+}
+
+function requirePlatform() {
+  if (currentScope !== 'platform' || !platformToken || !['PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(currentUser?.role)) throw new Error('Acesso global não autorizado.')
 }
 
 function assertObject(value) {
@@ -48,15 +54,18 @@ function assertObject(value) {
 async function forgetSession() {
   accessToken = null
   refreshToken = null
+  platformToken = null
   currentUser = null
   currentCompany = null
+  currentScope = null
   await fs.rm(sessionPath(), { force: true })
 }
 
-async function saveRefreshToken() {
-  if (!refreshToken || !safeStorage.isEncryptionAvailable()) return
+async function saveSessionCredential() {
+  const credential = currentScope === 'platform' && platformToken ? `platform:${platformToken}` : refreshToken ? `company:${refreshToken}` : null
+  if (!credential || !safeStorage.isEncryptionAvailable()) return
   await fs.mkdir(app.getPath('userData'), { recursive: true })
-  await fs.writeFile(sessionPath(), safeStorage.encryptString(refreshToken), { mode: 0o600 })
+  await fs.writeFile(sessionPath(), safeStorage.encryptString(credential), { mode: 0o600 })
 }
 
 function parseApiError(data, status) {
@@ -108,28 +117,69 @@ async function apiRequest(endpoint, { method = 'GET', body, auth = true, retry =
   return data
 }
 
+async function platformRequest(endpoint, { method = 'GET', body, restoring = false } = {}) {
+  if (restoring && endpoint === 'me' && platformToken) {
+    // A sessão criptografada ainda precisa ser validada antes de carregar o usuário.
+  } else requirePlatform()
+  let response
+  try {
+    response = await fetch(new URL(`platform/${endpoint.replace(/^\//, '')}`, apiUrl), {
+      method,
+      headers: { Accept: 'application/json', Authorization: `Bearer ${platformToken}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
+    })
+  } catch { throw new Error(`Não foi possível conectar à API em ${apiOrigin}. Confira se ela está rodando.`) }
+  if (response.status === 401) { await forgetSession(); throw new Error('Sua sessão terminou. Entre novamente.') }
+  if (response.status === 204) return null
+  const data = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(parseApiError(data, response.status))
+  return data
+}
+
 async function acceptAuth(result) {
+  if (result?.scope === 'platform' && ['PLATFORM_OWNER', 'PLATFORM_ADMIN'].includes(result.user?.role)) {
+    accessToken = null
+    refreshToken = null
+    platformToken = result.accessToken
+    currentUser = result.user
+    currentCompany = null
+    currentScope = 'platform'
+    await saveSessionCredential()
+    return { scope: 'platform', user: currentUser }
+  }
   if (result?.user?.role !== 'OWNER') throw new Error('O app desktop é exclusivo para o dono da loja. Vendedores usam a web ou o mobile.')
   accessToken = result.accessToken
   refreshToken = result.refreshToken
+  platformToken = null
   currentUser = result.user
   currentCompany = result.company
-  await saveRefreshToken()
-  return { user: currentUser, company: currentCompany }
+  currentScope = 'company'
+  await saveSessionCredential()
+  return { scope: 'company', user: currentUser, company: currentCompany }
 }
 
 async function restoreSession() {
-  if (currentUser && currentCompany) return { user: currentUser, company: currentCompany }
+  if (currentScope === 'platform' && currentUser) return { scope: 'platform', user: currentUser }
+  if (currentScope === 'company' && currentUser && currentCompany) return { scope: 'company', user: currentUser, company: currentCompany }
   if (!safeStorage.isEncryptionAvailable()) return null
   try {
-    refreshToken = safeStorage.decryptString(await fs.readFile(sessionPath()))
+    const stored = safeStorage.decryptString(await fs.readFile(sessionPath()))
+    if (stored.startsWith('platform:')) {
+      platformToken = stored.slice('platform:'.length)
+      currentScope = 'platform'
+      currentUser = await platformRequest('me', { restoring: true })
+      return { scope: 'platform', user: currentUser }
+    }
+    refreshToken = stored.startsWith('company:') ? stored.slice('company:'.length) : stored
     const refreshed = await apiRequest('auth/refresh', { method: 'POST', body: { refreshToken }, auth: false })
     accessToken = refreshed.accessToken
     const me = await apiRequest('auth/me')
     if (me.role !== 'OWNER') throw new Error('Acesso restrito ao dono da loja.')
     currentUser = { id: me.id, name: me.name, email: me.email, role: me.role }
     currentCompany = { id: me.company.id, name: me.company.name, slug: me.company.slug }
-    return { user: currentUser, company: currentCompany }
+    currentScope = 'company'
+    return { scope: 'company', user: currentUser, company: currentCompany }
   } catch {
     await forgetSession()
     return null
@@ -201,10 +251,22 @@ function registerHandlers() {
   handle('bootstrap', async () => ({ session: await restoreSession(), apiOrigin, webBaseUrl }))
   handle('login', async (input) => {
     const body = assertObject(input)
-    const result = await apiRequest('auth/login', { method: 'POST', body, auth: false })
+    const result = await apiRequest('auth/desktop-login', { method: 'POST', body, auth: false })
     return acceptAuth(result)
   })
   handle('logout', async () => { await forgetSession(); return true })
+  handle('platform:overview', () => platformRequest('overview'))
+  handle('platform:companies', () => platformRequest('companies'))
+  handle('platform:createCompany', (input) => platformRequest('companies', { method: 'POST', body: assertObject(input) }))
+  handle('platform:plans', () => platformRequest('plans'))
+  handle('platform:createPlan', (input) => platformRequest('plans', { method: 'POST', body: assertObject(input) }))
+  handle('platform:updatePlan', (id, input) => platformRequest(`plans/${requireId(id)}`, { method: 'PATCH', body: assertObject(input) }))
+  handle('platform:updateSubscription', (id, input) => platformRequest(`companies/${requireId(id)}/subscription`, { method: 'PUT', body: assertObject(input) }))
+  handle('platform:requests', () => platformRequest('demo-requests'))
+  handle('platform:admins', () => platformRequest('admins'))
+  handle('platform:createAdmin', (input) => platformRequest('admins', { method: 'POST', body: assertObject(input) }))
+  handle('platform:setAdminActive', (id, input) => platformRequest(`admins/${requireId(id)}/active`, { method: 'PATCH', body: assertObject(input) }))
+  handle('platform:audit', () => platformRequest('audit'))
   handle('catalog:open', async () => {
     requireOwner()
     if (!/^[a-z0-9-]+$/.test(currentCompany.slug)) throw new Error('Endereço da loja inválido.')
@@ -282,7 +344,7 @@ function createWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
       setTimeout(async () => {
         if (!mainWindow || mainWindow.isDestroyed()) return
-        const result = await mainWindow.webContents.executeJavaScript('({title: document.title, text: document.body.innerText.slice(0, 180), bridge: typeof window.cartalog})')
+        const result = await mainWindow.webContents.executeJavaScript('({title: document.title, text: document.body.innerText.slice(0, 180), bridge: typeof window.cartalog, viewport: innerHeight, documentHeight: document.documentElement.scrollHeight, bodyHeight: document.body.scrollHeight, mainOverflow: getComputedStyle(document.querySelector(".main-panel") || document.body).overflowY, pageOverflow: getComputedStyle(document.querySelector(".page-content") || document.body).overflowY})')
         console.log('CARTALOG_SMOKE', JSON.stringify(result))
       }, 1500)
     })

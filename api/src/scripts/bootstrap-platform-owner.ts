@@ -51,7 +51,9 @@ async function main() {
     password: z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/),
   }).parse({ name, email, password })
   const existingEmail = await prisma.platformUser.findUnique({ where: { email: input.email } })
+  const existingStoreUser = await prisma.user.findUnique({ where: { email: input.email } })
   const owner = await prisma.platformUser.findFirst({ where: { role: 'PLATFORM_OWNER' } })
+  if (existingStoreUser) throw new Error('Este e-mail já pertence a uma conta de loja.')
   if (existingEmail && existingEmail.id !== owner?.id) throw new Error('Este e-mail já pertence a outro administrador global.')
   const passwordHash = await bcrypt.hash(input.password, 12)
   const user = owner

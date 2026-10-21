@@ -15,7 +15,7 @@ O Cartalog é um SaaS para lojas de veículos. Cada loja tem uma empresa (`Compa
 | Landing web no domínio principal | Interessados | Apresentar o produto e receber pedidos de demonstração. |
 | Site público em `{slug}.dominio` | Compradores | Mostrar a loja, veículos e páginas publicadas; captar leads. |
 | Painel web da loja | Dono e vendedores | Dono: visão geral, veículos e acompanhamento/distribuição de leads. Vendedor: fila e atendimento. |
-| Desktop Electron | Dono da loja | Vendedores, veículos, identidade visual, configurações, banners e páginas públicas. |
+| Desktop Electron | Dono da loja e equipe global | Administração da loja ou da plataforma conforme a conta usada no login. |
 | Mobile React Native/Expo | Vendedores | Fila, carteira de leads, interações e mudança de status. |
 | API Fastify | Todas as superfícies | Autenticação, permissões, isolamento por empresa e regras de negócio. |
 | Painel global Cartalog | Equipe interna | Login separado, empresas, administradores, pedidos de demonstração, planos, assinaturas manuais e auditoria. |
@@ -76,11 +76,11 @@ Não existe cadastro público de empresa: `/api/v1/auth/register` foi removido e
 
 ### 3.3 Sessões e permissões
 
-- Login da loja usa slug da empresa, e-mail e senha. Senhas são armazenadas com bcrypt.
+- Login da loja usa apenas e-mail e senha. O e-mail identifica uma única conta de loja; a API encontra a empresa automaticamente. Senhas são armazenadas com bcrypt.
 - Access token JWT e refresh token são usados nas superfícies privadas. O middleware da API consulta o usuário no banco em cada requisição protegida e verifica `isActive`, papel e `companyId`.
-- O desktop aceita somente `OWNER`; o mobile aceita somente `SELLER`. A web aceita ambos com telas e ações diferentes.
+- O desktop aceita `OWNER`, `PLATFORM_OWNER` e `PLATFORM_ADMIN`, cada um no seu espaço; o mobile aceita somente `SELLER`. A web da loja aceita `OWNER` e `SELLER`, enquanto `/platform` atende contas globais.
 - A checagem visual de menu não substitui a autorização da API. Operações de empresa, estoque, equipe e lead são protegidas também no servidor.
-- A sessão do desktop guarda o refresh token criptografado pelo cofre do sistema quando o Electron oferece esse recurso; o mobile usa Expo SecureStore.
+- A sessão do desktop guarda o refresh token da loja ou o token global criptografado pelo cofre do sistema quando o Electron oferece esse recurso; o mobile usa Expo SecureStore.
 
 ## 4. Funcionalidades atuais por perfil
 
@@ -142,7 +142,7 @@ Os comandos de criação interna de loja e reenvio de pedidos são executados de
 
 ## 8. Painel global implementado
 
-A plataforma usa identidades próprias em PlatformUser. O login em /platform/login recebe e-mail e senha; a sessão global usa um JWT com chave derivada, emissor, audiência e escopo próprios. Um token global não autoriza as rotas da loja. O primeiro proprietário global é criado ou atualizado pelo comando interativo npm run platform:bootstrap em api/. A senha não fica no repositório.
+A plataforma usa identidades próprias em PlatformUser. O login em /platform/login ou no desktop recebe e-mail e senha; a sessão global usa um JWT com chave derivada, emissor, audiência e escopo próprios. Um token global não autoriza as rotas da loja. O primeiro proprietário global é criado ou atualizado pelo comando interativo npm run platform:bootstrap em api/. A senha não fica no repositório.
 
 O painel em /platform permite:
 

@@ -5,7 +5,6 @@ import {
   ConflictError,
   NotFoundError,
   UnauthorizedError,
-  AppError,
 } from '../../shared/errors/app-error'
 import { slugify } from '../../shared/utils/slug'
 import type { LoginInput, RefreshInput, RegisterInput } from './auth.schema'
@@ -14,13 +13,16 @@ export class AuthService {
   async register(input: RegisterInput, planId?: string) {
     const slug = slugify(input.companyName)
 
-    const [existingSlug, existingEmail] = await Promise.all([
+    const [existingSlug, existingEmail, existingUser, existingPlatformUser] = await Promise.all([
       prisma.company.findUnique({ where: { slug } }),
       prisma.company.findFirst({ where: { email: input.companyEmail } }),
+      prisma.user.findUnique({ where: { email: input.userEmail } }),
+      prisma.platformUser.findUnique({ where: { email: input.userEmail } }),
     ])
 
     if (existingSlug) throw new ConflictError(`Company slug "${slug}"`)
     if (existingEmail) throw new ConflictError('Company email')
+    if (existingUser || existingPlatformUser) throw new ConflictError('Este e-mail já pertence a outra conta')
 
     const passwordHash = await bcrypt.hash(input.password, 12)
 
@@ -73,21 +75,10 @@ export class AuthService {
     }
   }
 
-  // slugFromHost is the subdomain extracted from the Host header.
-  // If companySlug is provided in the body it takes precedence (e.g. when calling from Postman/API tools).
-  async login(input: LoginInput, slugFromHost: string | null) {
-    const slug = input.companySlug ?? slugFromHost
-
-    if (!slug) {
-      throw new AppError('Company not identified — provide companySlug or access via a company subdomain', 400)
-    }
-
-    const company = await prisma.company.findUnique({ where: { slug } })
-
-    if (!company) throw new UnauthorizedError('Invalid credentials')
-
+  async login(input: LoginInput) {
     const user = await prisma.user.findUnique({
-      where: { companyId_email: { companyId: company.id, email: input.email } },
+      where: { email: input.email },
+      include: { company: true },
     })
 
     if (!user || !user.isActive) throw new UnauthorizedError('Invalid credentials')
@@ -95,6 +86,7 @@ export class AuthService {
     const passwordMatch = await bcrypt.compare(input.password, user.passwordHash)
     if (!passwordMatch) throw new UnauthorizedError('Invalid credentials')
 
+    const company = user.company
     const accessToken = generateAccessToken({ sub: user.id, companyId: company.id, role: user.role })
     const refreshToken = generateRefreshToken(user.id)
 

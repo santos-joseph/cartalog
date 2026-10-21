@@ -13,7 +13,7 @@
 - **API:** concentra as regras de empresa, usuários, veículos, leads, demonstrações, contas globais, assinaturas manuais e manutenção do catálogo.
 - **Web administrativa:** login, visão do dono, cadastro de veículos e gestão de leads. O cadastro de empresa, vendedores, configurações e identidade visual foi retirado da interface web.
 - **Site público:** catálogo por subdomínio e captura de leads.
-- **Desktop:** app Electron para gestão de vendedores e veículos, personalização do catálogo e criação de páginas públicas por blocos. Veja [desktop/README.md](desktop/README.md).
+- **Desktop:** app Electron com acesso global para a equipe Cartalog e acesso da loja para o dono; inclui vendedores, veículos, personalização e páginas públicas. Veja [desktop/README.md](desktop/README.md).
 - **Painel global:** login separado em `/platform/login` para a equipe Cartalog criar empresas e donos, gerir planos e assinaturas, acompanhar demonstrações e administrar acessos globais.
 - **Mobile:** app React Native/Expo para o vendedor assumir leads, registrar contatos e atualizar status. Veja [mobile/README.md](mobile/README.md).
 
@@ -170,7 +170,8 @@ Documentação interativa: `http://localhost:3333/docs`
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| POST | `/login` | Autentica (slug via body ou header `X-Tenant-Slug`) |
+| POST | `/login` | Autentica a conta da loja por e-mail e senha |
+| POST | `/desktop-login` | Direciona dono da loja ou administrador global ao ambiente correto |
 | POST | `/refresh` | Renova access token com refresh token |
 | GET | `/me` | Retorna usuário + empresa + configurações |
 
@@ -354,7 +355,7 @@ npm run dev
 
 Frontend disponível em: `http://localhost:3000`
 
-### 4. App desktop (dono)
+### 4. App desktop (dono ou administrador global)
 
 ```powershell
 cd desktop

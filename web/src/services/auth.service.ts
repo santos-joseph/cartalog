@@ -1,7 +1,6 @@
 import { api } from '@/lib/axios'
 
 interface LoginPayload {
-  companySlug: string
   email: string
   password: string
 }

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { ArrowRight, BookOpenText, Building2, CarFront, ChevronDown, Copy, LayoutDashboard, LogOut, Maximize2, Minus, Settings2, ShieldCheck, UsersRound, X } from 'lucide-react'
 import logo from '../assets/cartalog-logo.png'
 import logoWhite from '../assets/cartalog-logo-white.png'
-import mark from '../assets/cartalog-mark.png'
 import type { Bootstrap, DesktopSession } from './types'
 import { errorText, Spinner } from './ui'
 import { AuthPage } from './pages/AuthPage'
@@ -11,6 +10,7 @@ import { TeamPage } from './pages/TeamPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ContentPage } from './pages/ContentPage'
 import { VehiclesPage } from './pages/VehiclesPage'
+import { PlatformPage } from './pages/PlatformPage'
 
 type View = 'overview' | 'vehicles' | 'team' | 'settings' | 'content'
 type Notice = { text: string; kind: 'success' | 'error' }
@@ -29,7 +29,7 @@ function DesktopWindow({ children }: { children: ReactNode }) {
     window.cartalog.window.isMaximized().then(setMaximized).catch(() => null)
     return window.cartalog.window.onStateChange(setMaximized)
   }, [])
-  return <div className="desktop-window"><header className="window-bar"><div className="window-brand"><img src={mark} alt="" /><span>Cartalog Desktop</span><small>ÁREA DO DONO</small></div><div className="window-controls"><button type="button" title="Minimizar" aria-label="Minimizar janela" onClick={() => void window.cartalog.window.minimize()}><Minus size={16} /></button><button type="button" title={maximized ? 'Restaurar' : 'Maximizar'} aria-label={maximized ? 'Restaurar janela' : 'Maximizar janela'} onClick={() => void window.cartalog.window.toggleMaximize().then(setMaximized)}>{maximized ? <Copy size={15} /> : <Maximize2 size={15} />}</button><button type="button" className="window-close" title="Fechar" aria-label="Fechar janela" onClick={() => void window.cartalog.window.close()}><X size={17} /></button></div></header>{children}</div>
+  return <div className="desktop-window"><header className="window-bar" aria-label="Controles da janela"><span className="window-drag-area" /><div className="window-controls"><button type="button" title="Minimizar" aria-label="Minimizar janela" onClick={() => void window.cartalog.window.minimize()}><Minus size={16} /></button><button type="button" title={maximized ? 'Restaurar' : 'Maximizar'} aria-label={maximized ? 'Restaurar janela' : 'Maximizar janela'} onClick={() => void window.cartalog.window.toggleMaximize().then(setMaximized)}>{maximized ? <Copy size={15} /> : <Maximize2 size={15} />}</button><button type="button" className="window-close" title="Fechar" aria-label="Fechar janela" onClick={() => void window.cartalog.window.close()}><X size={17} /></button></div></header>{children}</div>
 }
 
 export default function App() {
@@ -65,6 +65,7 @@ export default function App() {
   if (bootError) return <DesktopWindow><div className="boot-error"><CarFront size={32} /><h1>Não foi possível abrir o Cartalog</h1><p>{bootError}</p><button onClick={() => location.reload()}>Tentar novamente</button></div></DesktopWindow>
   if (!bootstrap) return <DesktopWindow><div className="boot-loading"><img src={logo} alt="Cartalog" /><Spinner text="Preparando o Cartalog Desktop" /></div></DesktopWindow>
   if (!session) return <DesktopWindow><AuthPage apiOrigin={bootstrap.apiOrigin} onAuth={(result) => { setSession(result); setView('overview') }} /></DesktopWindow>
+  if (session.scope === 'platform') return <DesktopWindow><PlatformPage session={session} onLogout={logout} loggingOut={loggingOut} notify={notify} notice={notice} /></DesktopWindow>
 
   return <DesktopWindow><div className="app-shell">
     <aside className="sidebar">

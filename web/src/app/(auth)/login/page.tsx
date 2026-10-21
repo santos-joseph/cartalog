@@ -13,7 +13,7 @@ export default function LoginPage() {
   const router = useRouter()
   const qc = useQueryClient()
   const setAuth = useAuthStore((s) => s.setAuth)
-  const [form, setForm] = useState({ companySlug: '', email: '', password: '' })
+  const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -45,7 +45,6 @@ export default function LoginPage() {
         <h2 className="text-[2.2rem] leading-tight font-semibold tracking-[-.045em] text-foreground">Entre na sua loja.</h2>
         <p className="text-sm text-muted-foreground mt-3 mb-8">Acesse seus veículos e continue cada conversa.</p>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <Input label="Slug da empresa" value={form.companySlug} onChange={(e) => setForm((f) => ({ ...f, companySlug: e.target.value }))} placeholder="ex: demo-motors" required />
           <Input label="Email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
           <Input label="Senha" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
           {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}

@@ -1,6 +1,6 @@
 {
   "name": "@cartalog/desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Aplicativo desktop do dono da loja Cartalog",
@@ -12,6 +12,7 @@
     "icon": "node scripts/build-icon.mjs",
     "start": "electron .",
     "smoke": "cross-env CARTALOG_SMOKE=1 electron .",
+    "smoke:layout": "electron scripts/smoke-layout.cjs",
     "package:win": "npm run icon && node scripts/build-installer-artwork.mjs && npm run build && electron-builder --win nsis"
   },
   "dependencies": {
@@ -56,7 +57,9 @@
       "uninstallerIcon": "assets/cartalog.ico",
       "installerSidebar": "assets/installer-sidebar.bmp",
       "uninstallerSidebar": "assets/installer-sidebar.bmp",
-      "installerLanguages": ["pt_BR"],
+      "installerLanguages": [
+        "pt_BR"
+      ],
       "language": "1046",
       "artifactName": "Cartalog-Desktop-Setup-${version}.${ext}"
     }
