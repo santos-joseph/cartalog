@@ -15,6 +15,8 @@ node scripts/demo.mjs start --desktop
 
 O primeiro comando instala dependências de API, web e desktop, cria o banco de demonstração no Docker, aplica **todas as migrações**, popula marcas/modelos/combustíveis/opcionais e solicita nome, e-mail e senha do primeiro administrador global **somente se ele ainda não existir**. Ele não cria uma loja nem um usuário com senha padrão. A senha é digitada no terminal e nunca é gravada no repositório. O segundo comando abre API (`http://localhost:3333`), web (`http://localhost:3000`) e desktop. Mantenha esse terminal aberto durante a apresentação. A configuração local gerada fica em `api/.env.demo` e é ignorada pelo Git.
 
+Para repetir o fluxo com um só comando no Mac, execute `bash iniciar-demo-mac.command`; no Windows com Docker, execute `iniciar-demo-windows.cmd`. Esses lançadores chamam o mesmo setup idempotente e iniciam os três serviços. O `--existing-db` fica disponível no comando manual para quem já usa PostgreSQL nativo.
+
 Se preferir usar PostgreSQL já instalado, configure `DATABASE_URL` no ambiente ou em `api/.env` e execute `node scripts/demo.mjs setup --existing-db`. Confirme que a URL aponta para um **banco de demonstração** antes de executar as migrações. O script nunca reseta o banco. Se uma configuração `.env.demo` anterior apontar para outro banco, ele interrompe a troca para evitar aplicar migrações no destino errado.
 
 Depois de criar o administrador global, entre pelo desktop ou por `http://localhost:3000/platform/login`. A equipe Cartalog cria a empresa e o dono no painel global; o dono cadastra vendedores no desktop. O vendedor faz login com e-mail na web ou no mobile. O slug serve para o endereço público da loja.
