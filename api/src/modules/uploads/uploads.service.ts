@@ -3,13 +3,14 @@ import fs from 'fs/promises'
 import { env } from '../../config/env'
 import { AppError } from '../../shared/errors/app-error'
 
-export type UploadCategory = 'vehicles' | 'logos' | 'favicons' | 'banners'
+export type UploadCategory = 'vehicles' | 'logos' | 'favicons' | 'banners' | 'pages'
 
 const ALLOWED_TYPES: Record<UploadCategory, string[]> = {
   vehicles: ['image/jpeg', 'image/png', 'image/webp'],
   logos: ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'],
   favicons: ['image/x-icon', 'image/png', 'image/webp'],
   banners: ['image/jpeg', 'image/png', 'image/webp'],
+  pages: ['image/jpeg', 'image/png', 'image/webp'],
 }
 
 const MAX_SIZES: Record<UploadCategory, number> = {
@@ -17,6 +18,7 @@ const MAX_SIZES: Record<UploadCategory, number> = {
   logos: 2 * 1024 * 1024,      // 2MB
   favicons: 512 * 1024,         // 512KB
   banners: 8 * 1024 * 1024,    // 8MB
+  pages: 8 * 1024 * 1024,      // 8MB
 }
 
 export class UploadsService {
@@ -55,7 +57,9 @@ export class UploadsService {
     // url format: /uploads/vehicles/filename.jpg
     if (!url.startsWith('/uploads/')) return
     const relativePath = url.replace('/uploads/', '')
-    const fullPath = path.resolve(env.UPLOAD_DIR, relativePath)
+    const uploadRoot = path.resolve(env.UPLOAD_DIR)
+    const fullPath = path.resolve(uploadRoot, relativePath)
+    if (!fullPath.startsWith(`${uploadRoot}${path.sep}`)) return
     await fs.unlink(fullPath).catch(() => null) // silently ignore if file not found
   }
 

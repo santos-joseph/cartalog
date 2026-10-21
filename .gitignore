@@ -6,8 +6,11 @@ node_modules/
 # Build outputs
 dist/
 .next/
+.next-build/
 out/
 build/
+desktop/release/
+.mobile-git-backup/
 
 # Environment files - NEVER commit these
 .env

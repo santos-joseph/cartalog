@@ -1,9 +1,10 @@
 import { Prisma } from '../../../generated/prisma/client'
 import { prisma } from '../../database/prisma'
-import { NotFoundError, AppError } from '../../shared/errors/app-error'
+import { NotFoundError, AppError, ConflictError, ValidationError } from '../../shared/errors/app-error'
 import { slugify, uniqueSlug } from '../../shared/utils/slug'
 import { getPaginationParams, buildMeta } from '../../shared/utils/pagination'
 import type { CreateVehicleInput, UpdateVehicleInput, VehicleFilters } from './vehicles.schema'
+import { uploadsService } from '../uploads/uploads.service'
 
 const vehicleSelect = {
   id: true,
@@ -109,6 +110,7 @@ export class VehiclesService {
   }
 
   async create(companyId: string, input: CreateVehicleInput) {
+    if (input.categoryId) await this.requireCategory(companyId, input.categoryId)
     const model = await prisma.model.findUnique({
       where: { id: input.modelId },
       include: { brand: true },
@@ -143,6 +145,7 @@ export class VehiclesService {
 
   async update(companyId: string, vehicleId: string, input: UpdateVehicleInput) {
     await this.findVehicleOrThrow(companyId, vehicleId)
+    if (input.categoryId) await this.requireCategory(companyId, input.categoryId)
 
     const { featureIds, price, ...rest } = input
 
@@ -172,7 +175,20 @@ export class VehiclesService {
 
   async delete(companyId: string, vehicleId: string) {
     await this.findVehicleOrThrow(companyId, vehicleId)
-    await prisma.vehicle.delete({ where: { id: vehicleId } })
+    const [leadCount, interestCount, images] = await Promise.all([
+      prisma.lead.count({ where: { companyId, vehicleId } }),
+      prisma.leadVehicleInterest.count({ where: { vehicleId } }),
+      prisma.vehicleImage.findMany({ where: { vehicleId }, select: { imageUrl: true } }),
+    ])
+    if (leadCount || interestCount) throw new ConflictError('Vehicle has leads and cannot be deleted')
+    await prisma.$transaction(async (tx) => {
+      await tx.featuredVehicle.deleteMany({ where: { vehicleId } })
+      await tx.vehicleView.deleteMany({ where: { vehicleId } })
+      await tx.vehicleImage.deleteMany({ where: { vehicleId } })
+      await tx.vehicleFeature.deleteMany({ where: { vehicleId } })
+      await tx.vehicle.delete({ where: { id: vehicleId } })
+    })
+    await Promise.all(images.map((image) => uploadsService.deleteFile(image.imageUrl)))
   }
 
   async addImages(companyId: string, vehicleId: string, urls: string[]) {
@@ -201,12 +217,26 @@ export class VehiclesService {
     const image = await prisma.vehicleImage.findFirst({ where: { id: imageId, vehicleId } })
     if (!image) throw new NotFoundError('Image')
     await prisma.vehicleImage.delete({ where: { id: imageId } })
+    if (image.isCover) {
+      const next = await prisma.vehicleImage.findFirst({ where: { vehicleId }, orderBy: { position: 'asc' } })
+      if (next) await prisma.vehicleImage.update({ where: { id: next.id }, data: { isCover: true } })
+    }
+    await uploadsService.deleteFile(image.imageUrl)
   }
 
   async setCoverImage(companyId: string, vehicleId: string, imageId: string) {
     await this.findVehicleOrThrow(companyId, vehicleId)
-    await prisma.vehicleImage.updateMany({ where: { vehicleId }, data: { isCover: false } })
-    return prisma.vehicleImage.update({ where: { id: imageId }, data: { isCover: true } })
+    const image = await prisma.vehicleImage.findFirst({ where: { id: imageId, vehicleId } })
+    if (!image) throw new NotFoundError('Image')
+    return prisma.$transaction(async (tx) => {
+      await tx.vehicleImage.updateMany({ where: { vehicleId }, data: { isCover: false } })
+      return tx.vehicleImage.update({ where: { id: imageId }, data: { isCover: true } })
+    })
+  }
+
+  private async requireCategory(companyId: string, categoryId: string) {
+    const category = await prisma.category.findFirst({ where: { id: categoryId, companyId } })
+    if (!category) throw new ValidationError('Category belongs to another company or does not exist')
   }
 
   async getBrands() {

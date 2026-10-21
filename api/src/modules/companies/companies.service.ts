@@ -1,5 +1,6 @@
 import { prisma } from '../../database/prisma'
-import { NotFoundError, ConflictError } from '../../shared/errors/app-error'
+import { Prisma } from '../../../generated/prisma/client'
+import { NotFoundError, ConflictError, AppError } from '../../shared/errors/app-error'
 import type {
   UpdateSettingsInput,
   CreateBannerInput,
@@ -7,6 +8,11 @@ import type {
   CreatePageInput,
   UpdatePageInput,
 } from './companies.schema'
+import { uploadsService } from '../uploads/uploads.service'
+
+function plainPageContent(blocks: NonNullable<CreatePageInput['blocks']>) {
+  return blocks.map((block) => block.type === 'hero' ? [block.title, block.subtitle].join(' ') : block.type === 'text' ? [block.heading, block.body].join(' ') : block.type === 'image' ? [block.alt, block.caption].join(' ') : block.text).join('\n\n').trim()
+}
 
 export class CompaniesService {
   async getCompany(companyId: string) {
@@ -30,13 +36,18 @@ export class CompaniesService {
     if (!company) throw new NotFoundError('Company')
 
     return {
-      primaryColor: company.primaryColor || '#DC2626',
-      secondaryColor: company.secondaryColor || '#991B1B',
+      primaryColor: company.primaryColor || '#d20a1e',
+      secondaryColor: company.secondaryColor || '#a60818',
       whatsapp: company.whatsapp || null,
       phone: company.phone || null,
       email: company.email || null,
       showPrices: siteSettings?.showPrices ?? true,
       showWhatsappButton: siteSettings?.showWhatsappButton ?? true,
+      backgroundColor: siteSettings?.backgroundColor || '#fbfbfd',
+      fontFamily: siteSettings?.fontFamily || 'sans',
+      homeHeadline: siteSettings?.homeHeadline ?? null,
+      homeSubheadline: siteSettings?.homeSubheadline ?? null,
+      showHomeStats: siteSettings?.showHomeStats ?? true,
       siteTitle: seoSettings?.metaTitle ?? null,
       siteDescription: seoSettings?.metaDescription ?? null,
       siteKeywords: seoSettings?.metaKeywords ?? null,
@@ -50,7 +61,7 @@ export class CompaniesService {
   async updateSettings(companyId: string, input: UpdateSettingsInput) {
     const {
       primaryColor, secondaryColor, whatsapp, phone, email,
-      showPrices, showWhatsappButton,
+      showPrices, showWhatsappButton, backgroundColor, fontFamily, homeHeadline, homeSubheadline, showHomeStats,
       siteTitle, siteDescription, siteKeywords,
       address, city, state, zipCode,
     } = input
@@ -72,8 +83,13 @@ export class CompaniesService {
         update: {
           ...(showPrices !== undefined && { showPrices }),
           ...(showWhatsappButton !== undefined && { showWhatsappButton }),
+          ...(backgroundColor !== undefined && { backgroundColor }),
+          ...(fontFamily !== undefined && { fontFamily }),
+          ...(homeHeadline !== undefined && { homeHeadline }),
+          ...(homeSubheadline !== undefined && { homeSubheadline }),
+          ...(showHomeStats !== undefined && { showHomeStats }),
         },
-        create: { companyId, showPrices: showPrices ?? true, showWhatsappButton: showWhatsappButton ?? true },
+        create: { companyId, showPrices: showPrices ?? true, showWhatsappButton: showWhatsappButton ?? true, backgroundColor: backgroundColor ?? '#fbfbfd', fontFamily: fontFamily ?? 'sans', homeHeadline: homeHeadline ?? null, homeSubheadline: homeSubheadline ?? null, showHomeStats: showHomeStats ?? true },
       }),
 
       prisma.seoSettings.upsert({
@@ -115,7 +131,10 @@ export class CompaniesService {
   }
 
   async updateLogo(companyId: string, logoUrl: string) {
-    return prisma.company.update({ where: { id: companyId }, data: { logoUrl } })
+    const previous = await prisma.company.findUnique({ where: { id: companyId }, select: { logoUrl: true } })
+    const company = await prisma.company.update({ where: { id: companyId }, data: { logoUrl } })
+    if (previous?.logoUrl && previous.logoUrl !== logoUrl) await uploadsService.deleteFile(previous.logoUrl)
+    return company
   }
 
   // ---- BANNERS ----
@@ -130,18 +149,32 @@ export class CompaniesService {
   async createBanner(companyId: string, input: CreateBannerInput) {
     const count = await prisma.banner.count({ where: { companyId } })
     return prisma.banner.create({
-      data: { companyId, ...input, position: input.position ?? count },
+      data: {
+        companyId,
+        ...input,
+        imageUrl: input.imageUrl ?? '',
+        isActive: Boolean(input.imageUrl) && input.isActive,
+        position: input.position ?? count,
+      },
     })
   }
 
   async updateBanner(companyId: string, bannerId: string, input: UpdateBannerInput) {
-    await this.findBannerOrThrow(companyId, bannerId)
-    return prisma.banner.update({ where: { id: bannerId }, data: input })
+    const banner = await this.findBannerOrThrow(companyId, bannerId)
+    if (input.isActive && !(input.imageUrl ?? banner.imageUrl)) {
+      throw new AppError('Adicione uma imagem antes de publicar o banner', 422)
+    }
+    const updated = await prisma.banner.update({ where: { id: bannerId }, data: input })
+    if (input.imageUrl && banner.imageUrl && input.imageUrl !== banner.imageUrl) {
+      await uploadsService.deleteFile(banner.imageUrl)
+    }
+    return updated
   }
 
   async deleteBanner(companyId: string, bannerId: string) {
-    await this.findBannerOrThrow(companyId, bannerId)
+    const banner = await this.findBannerOrThrow(companyId, bannerId)
     await prisma.banner.delete({ where: { id: bannerId } })
+    if (banner.imageUrl) await uploadsService.deleteFile(banner.imageUrl)
   }
 
   private async findBannerOrThrow(companyId: string, bannerId: string) {
@@ -159,6 +192,10 @@ export class CompaniesService {
     })
   }
 
+  async getPageById(companyId: string, pageId: string) {
+    return this.findPageOrThrow(companyId, pageId)
+  }
+
   async getPage(companyId: string, slug: string) {
     const page = await prisma.page.findUnique({ where: { companyId_slug: { companyId, slug } } })
     if (!page) throw new NotFoundError('Page')
@@ -170,7 +207,7 @@ export class CompaniesService {
       where: { companyId_slug: { companyId, slug: input.slug } },
     })
     if (existing) throw new ConflictError(`Page with slug "${input.slug}"`)
-    return prisma.page.create({ data: { companyId, ...input } })
+    return prisma.page.create({ data: { companyId, title: input.title, slug: input.slug, isPublished: input.isPublished, content: input.blocks ? plainPageContent(input.blocks) : input.content ?? '', blocks: input.blocks as Prisma.InputJsonValue | undefined } })
   }
 
   async updatePage(companyId: string, pageId: string, input: UpdatePageInput) {
@@ -183,7 +220,8 @@ export class CompaniesService {
       if (conflict) throw new ConflictError(`Page with slug "${input.slug}"`)
     }
 
-    return prisma.page.update({ where: { id: pageId }, data: input })
+    const { blocks, content, ...rest } = input
+    return prisma.page.update({ where: { id: pageId }, data: { ...rest, ...(blocks !== undefined && { blocks: blocks as Prisma.InputJsonValue, content: plainPageContent(blocks) }), ...(blocks === undefined && content !== undefined && { content }) } })
   }
 
   async deletePage(companyId: string, pageId: string) {

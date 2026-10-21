@@ -96,6 +96,7 @@ export class DashboardService {
         byStatus: leadStatuses.map((s) => ({
           id: s.id,
           name: s.name,
+          kind: s.kind,
           position: s.position,
           count: s._count.leads,
         })),

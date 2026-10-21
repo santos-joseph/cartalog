@@ -1,141 +1,30 @@
 import Link from 'next/link'
-import { Car, Gauge, Fuel, ArrowRight, Search } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, CarFront, Gauge, Fuel, MessageCircleMore, Search, ShieldCheck } from 'lucide-react'
 import { getCatalog, getCatalogVehicles } from '@/services/catalog.service'
 import { notFound } from 'next/navigation'
 import { formatCurrency, formatMileage } from '@/lib/utils'
 
-function VehicleCard({ v, apiUrl }: { v: any; apiUrl: string }) {
-  const cover = v.images?.[0]?.imageUrl
-  return (
-    <Link
-      href={`/veiculos/${v.slug}`}
-      className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-lg transition-shadow hover:no-underline flex flex-col"
-    >
-      <div className="aspect-[4/3] bg-muted overflow-hidden relative">
-        {cover ? (
-          <img
-            src={`${apiUrl}${cover}`}
-            alt={`${v.model.brand.name} ${v.model.name} ${v.year}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-primary opacity-60">
-            <Car className="text-white" size={40} />
-          </div>
-        )}
-        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm rounded-lg px-2.5 py-1 shadow-sm">
-          <span className="font-bold text-foreground text-sm">{formatCurrency(v.price)}</span>
-        </div>
-      </div>
-      <div className="p-4 flex flex-col flex-1">
-        <p className="text-xs font-semibold text-primary uppercase tracking-wide">{v.model.brand.name}</p>
-        <h3 className="font-bold text-foreground mt-0.5">{v.model.name} <span className="text-muted-foreground font-normal">{v.year}</span></h3>
-        <div className="flex items-center gap-3 mt-3 text-xs text-muted-foreground">
-          {v.mileage != null && (
-            <span className="flex items-center gap-1"><Gauge size={12} />{formatMileage(v.mileage)}</span>
-          )}
-          {v.fuel && (
-            <span className="flex items-center gap-1"><Fuel size={12} />{v.fuel.name}</span>
-          )}
-        </div>
-        <div className="mt-auto pt-3">
-          <span className="text-xs text-primary font-medium group-hover:underline">Ver detalhes →</span>
-        </div>
-      </div>
-    </Link>
-  )
+function VehicleCard({ vehicle, apiUrl, showPrices }: { vehicle: any; apiUrl: string; showPrices: boolean }) {
+  const cover = vehicle.images?.[0]?.imageUrl
+  return <Link href={`/veiculos/${vehicle.slug}`} className="group overflow-hidden rounded-[26px] border border-border bg-white transition-all hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(20,20,25,.08)] hover:no-underline"><div className="aspect-[16/11] overflow-hidden bg-[#f3f3f5]">{cover ? <img src={`${apiUrl}${cover}`} alt={`${vehicle.model.brand.name} ${vehicle.model.name}`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="grid h-full place-items-center catalog-placeholder"><CarFront size={55} className="text-primary/35" strokeWidth={1.2} /></div>}</div><div className="p-5"><p className="page-eyebrow mb-1">{vehicle.model.brand.name}</p><h3 className="text-xl font-semibold tracking-tight">{vehicle.model.name} <span className="font-normal text-muted-foreground">{vehicle.year}</span></h3><div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">{vehicle.mileage != null && <span className="inline-flex items-center gap-1"><Gauge size={13} />{formatMileage(vehicle.mileage)}</span>}{vehicle.fuel && <span className="inline-flex items-center gap-1"><Fuel size={13} />{vehicle.fuel.name}</span>}</div><div className="mt-6 flex items-center justify-between border-t border-border pt-4">{showPrices && <strong className="text-xl tracking-tight">{formatCurrency(vehicle.price)}</strong>}<span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-primary"><ArrowUpRight size={17} /></span></div></div></Link>
 }
 
 export default async function CatalogHomePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const [catalogData, vehiclesData] = await Promise.all([
-    getCatalog(slug),
-    getCatalogVehicles(slug, { perPage: '9', status: 'available' }),
-  ])
-
+  const [catalogData, vehiclesData] = await Promise.all([getCatalog(slug), getCatalogVehicles(slug, { perPage: '9', status: 'available' })])
   if (!catalogData) notFound()
-
   const { company } = catalogData
+  const showPrices = company.siteSettings?.showPrices !== false
+  const homeHeadline = company.siteSettings?.homeHeadline?.trim()
   const vehicles = vehiclesData?.data ?? []
+  const featured = vehicles[0]
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3333'
+  const featuredCover = featured?.images?.[0]?.imageUrl
+  const count = vehiclesData?.meta?.total ?? vehicles.length
 
-  return (
-    <div>
-      {/* Hero */}
-      <section className="bg-gradient-primary relative overflow-hidden">
-        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-white/5" />
-        <div className="absolute -bottom-32 -left-12 w-80 h-80 rounded-full bg-white/5" />
-        <div className="relative max-w-7xl mx-auto px-6 py-20 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">{company.name}</h1>
-          <p className="text-white/70 text-lg mb-8">Encontre o veículo perfeito para você</p>
-          <Link
-            href="/veiculos"
-            className="inline-flex items-center gap-2 bg-white text-primary font-bold px-8 py-3.5 rounded-xl hover:bg-white/90 transition-colors text-base hover:no-underline shadow-lg"
-          >
-            <Search size={18} />
-            Ver todos os veículos
-          </Link>
-        </div>
-      </section>
-
-      {/* Stats bar */}
-      <div className="bg-white border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex flex-wrap gap-6 justify-center">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-primary">{vehiclesData?.meta?.total ?? vehicles.length}</p>
-            <p className="text-xs text-muted-foreground">veículos disponíveis</p>
-          </div>
-          {company.phone && (
-            <div className="text-center">
-              <p className="text-sm font-semibold text-foreground">{company.phone}</p>
-              <p className="text-xs text-muted-foreground">Telefone</p>
-            </div>
-          )}
-          {company.whatsapp && (
-            <div className="text-center">
-              <a href={`https://wa.me/${company.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-green-600 hover:no-underline">WhatsApp</a>
-              <p className="text-xs text-muted-foreground">Atendimento online</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Vehicles grid */}
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Nosso Estoque</h2>
-            <p className="text-muted-foreground text-sm mt-1">{vehiclesData?.meta?.total ?? 0} veículos disponíveis</p>
-          </div>
-          <Link href="/veiculos" className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 hover:no-underline">
-            Ver todos <ArrowRight size={16} />
-          </Link>
-        </div>
-
-        {vehicles.length === 0 ? (
-          <div className="text-center py-16">
-            <Car size={48} className="mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">Nenhum veículo disponível no momento.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vehicles.map((v: any) => (
-              <VehicleCard key={v.id} v={v} apiUrl={apiUrl} />
-            ))}
-          </div>
-        )}
-
-        {(vehiclesData?.meta?.total ?? 0) > 9 && (
-          <div className="text-center mt-10">
-            <Link
-              href="/veiculos"
-              className="inline-flex items-center gap-2 border-2 border-primary text-primary font-semibold px-8 py-3 rounded-xl hover:bg-primary hover:text-white transition-colors hover:no-underline"
-            >
-              Ver todos os veículos <ArrowRight size={18} />
-            </Link>
-          </div>
-        )}
-      </section>
-    </div>
-  )
+  return <div>
+    <section className="relative overflow-hidden catalog-hero"><div className="pointer-events-none absolute -right-44 -top-64 h-[650px] w-[650px] rounded-full border-[80px] border-primary/[.035]" /><div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-6 pb-20 pt-20 lg:grid-cols-[1.1fr_1fr] lg:py-28"><div><span className="inline-flex items-center gap-2 rounded-full border border-primary/10 bg-white px-4 py-2 text-xs font-semibold text-primary"><CarFront size={15} /> Catálogo de {company.name}</span><h1 className="mt-7 max-w-[650px] text-[clamp(2.9rem,5.4vw,5.5rem)] font-semibold leading-[1.04] tracking-[-.065em]">{homeHeadline ? <span className="catalog-title-accent">{homeHeadline}</span> : <>O próximo capítulo começa <span className="catalog-title-accent">ao volante.</span></>}</h1><p className="mt-6 max-w-lg text-lg leading-7 text-muted-foreground">{company.siteSettings?.homeSubheadline?.trim() || `Encontre um veículo que combina com seus planos. Explore o estoque de ${company.name} e fale direto com a loja.`}</p><form action="/veiculos" className="mt-9 flex max-w-[540px] items-center gap-2 rounded-full border border-border bg-white p-1.5 pl-5 shadow-[0_12px_35px_rgba(20,20,25,.07)]"><Search size={18} className="shrink-0 text-muted-foreground" /><input name="search" aria-label="Buscar veículo" placeholder="Qual carro você procura?" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" /><button type="submit" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary-dark">Buscar <ArrowRight size={15} /></button></form><p className="mt-4 text-xs text-muted-foreground">{count} veículos disponíveis para conhecer</p></div><div className="relative"><div className="absolute -left-5 -top-5 h-28 w-28 rounded-full bg-primary/[.07] blur-2xl" /><div className="relative overflow-hidden rounded-[34px] border border-border bg-white p-3 shadow-[0_24px_65px_rgba(20,20,25,.10)]"><div className="aspect-[4/3] overflow-hidden rounded-[26px] bg-[#f1f1f3]">{featuredCover ? <img src={`${apiUrl}${featuredCover}`} alt={`${featured.model.brand.name} ${featured.model.name}`} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center catalog-placeholder"><CarFront size={110} className="text-primary/30" strokeWidth={1} /></div>}</div><div className="flex flex-wrap items-end justify-between gap-3 px-4 py-5"><div><p className="page-eyebrow mb-1">Em destaque</p><h2 className="text-xl font-semibold tracking-tight">{featured ? `${featured.model.brand.name} ${featured.model.name}` : 'Encontre o seu próximo carro'}</h2><p className="mt-1 text-sm text-muted-foreground">{featured ? `${featured.year} · ${formatMileage(featured.mileage)}` : 'Explore nosso catálogo'}</p></div>{featured && showPrices && <strong className="text-xl tracking-tight text-primary">{formatCurrency(featured.price)}</strong>}</div></div></div></div></section>
+    {company.siteSettings?.showHomeStats !== false && <section className="mx-auto grid max-w-[1200px] gap-4 px-6 py-5 md:grid-cols-3"><div className="rounded-[26px] border border-border bg-white p-7"><p className="page-eyebrow mb-4">Nosso estoque</p><p className="text-5xl font-semibold tracking-[-.07em]">{count}</p><p className="mt-2 text-sm text-muted-foreground">veículos disponíveis</p></div><div className="rounded-[26px] border border-border bg-white p-7"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-primary"><MessageCircleMore size={19} /></span><h2 className="mt-5 text-lg font-semibold">Converse com a loja</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Gostou de um carro? Envie seu interesse e receba atendimento de um vendedor.</p></div><div className="rounded-[26px] border border-border bg-white p-7"><span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-primary"><ShieldCheck size={19} /></span><h2 className="mt-5 text-lg font-semibold">Escolha com clareza</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Confira fotos, preço e características antes de entrar em contato.</p></div></section>}
+    <section className="mx-auto max-w-[1200px] px-6 pb-20 pt-20"><div className="mb-9 flex flex-wrap items-end justify-between gap-4"><div><p className="page-eyebrow mb-2">Prontos para você</p><h2 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-[1.08] tracking-[-.055em]">Explore o estoque.</h2><p className="mt-3 text-muted-foreground">Conheça os veículos disponíveis em {company.name}.</p></div><Link href="/veiculos" className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">Ver todos <ArrowUpRight size={17} /></Link></div>{vehicles.length === 0 ? <div className="rounded-[30px] border border-border bg-white py-20 text-center"><CarFront size={42} className="mx-auto text-primary/30" /><p className="mt-4 text-sm text-muted-foreground">Nenhum veículo disponível no momento.</p></div> : <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{vehicles.map((vehicle: any) => <VehicleCard key={vehicle.id} vehicle={vehicle} apiUrl={apiUrl} showPrices={showPrices} />)}</div>}{count > 9 && <div className="mt-10 text-center"><Link href="/veiculos" className="inline-flex items-center gap-2 rounded-full border border-primary px-6 py-3 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground">Ver todos os veículos <ArrowRight size={16} /></Link></div>}</section>
+  </div>
 }

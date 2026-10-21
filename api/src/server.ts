@@ -17,8 +17,11 @@ import { leadsRoutes } from './modules/leads/leads.routes'
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes'
 import { catalogRoutes } from './modules/catalog/catalog.routes'
 import { usersRoutes } from './modules/users/users.routes'
+import { demoRoutes } from './modules/demo/demo.routes'
+import { platformRoutes } from './modules/platform/platform.routes'
 
 const app = Fastify({
+  trustProxy: env.TRUST_PROXY,
   logger: {
     level: env.NODE_ENV === 'production' ? 'info' : 'debug',
     transport:
@@ -31,6 +34,7 @@ const app = Fastify({
 async function bootstrap() {
   // ---- Plugins ----
   await app.register(cors, {
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     origin:
       env.NODE_ENV === 'production'
         ? (origin, cb) => {
@@ -85,6 +89,8 @@ async function bootstrap() {
   app.register(dashboardRoutes, { prefix: '/api/v1/dashboard' })
   app.register(catalogRoutes, { prefix: '/api/v1/catalog' })
   app.register(usersRoutes, { prefix: '/api/v1/users' })
+  app.register(demoRoutes, { prefix: '/api/v1/demo-requests' })
+  app.register(platformRoutes, { prefix: '/api/v1/platform' })
 
   // ---- Error handler ----
   app.setErrorHandler(errorHandler)

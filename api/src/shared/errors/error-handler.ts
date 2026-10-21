@@ -38,6 +38,9 @@ export function errorHandler(
   if ('statusCode' in error && (error as FastifyError).statusCode === 400) {
     return reply.status(400).send({ error: error.message, code: 'BAD_REQUEST' })
   }
+  if ('statusCode' in error && (error as FastifyError).statusCode === 415) {
+    return reply.status(415).send({ error: error.message, code: 'UNSUPPORTED_MEDIA_TYPE' })
+  }
 
   request.log.error(error)
 

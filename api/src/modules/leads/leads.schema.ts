@@ -11,7 +11,8 @@ export const createLeadSchema = z.object({
 
 export const updateLeadSchema = z.object({
   statusId: z.string().nullish(),
-  assignedUserId: z.string().optional(),
+  assignedUserId: z.string().nullish(),
+  lossReason: z.string().min(3).max(2000).optional(),
 })
 
 export const createInteractionSchema = z.object({
@@ -26,6 +27,7 @@ export const leadsFiltersSchema = z.object({
   search: z.string().optional(),
   vehicleId: z.string().optional(),
   assignedUserId: z.string().optional(),
+  scope: z.enum(['queue', 'mine', 'all']).default('all'),
   orderBy: z.enum(['createdAt']).default('createdAt'),
   order: z.enum(['asc', 'desc']).default('desc'),
 })
@@ -33,6 +35,7 @@ export const leadsFiltersSchema = z.object({
 export const createLeadStatusSchema = z.object({
   name: z.string().min(1).max(100),
   position: z.coerce.number().optional(),
+  kind: z.enum(['open', 'won', 'lost']).default('open'),
 })
 
 export const updateLeadStatusSchema = createLeadStatusSchema.partial()

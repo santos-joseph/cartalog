@@ -4,14 +4,15 @@ import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from 
 import type { CreateUserInput, UpdateUserInput, ChangePasswordInput } from './users.schema'
 
 export class UsersService {
-  async list(companyId: string) {
+  async list(companyId: string, includeInactive = false) {
     return prisma.user.findMany({
-      where: { companyId },
+      where: { companyId, ...(includeInactive ? {} : { isActive: true }) },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        isActive: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -20,12 +21,13 @@ export class UsersService {
 
   async findById(companyId: string, userId: string) {
     const user = await prisma.user.findFirst({
-      where: { id: userId, companyId },
+      where: { id: userId, companyId, isActive: true },
       select: {
         id: true,
         name: true,
         email: true,
         role: true,
+        isActive: true,
         createdAt: true,
       },
     })
@@ -43,26 +45,24 @@ export class UsersService {
 
     return prisma.user.create({
       data: { companyId, name: input.name, email: input.email, role: input.role, passwordHash },
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
     })
   }
 
   async update(companyId: string, userId: string, requestorId: string, requestorRole: string, input: UpdateUserInput) {
     const user = await this.findUserOrThrow(companyId, userId)
 
-    if (user.role === 'admin' && requestorId !== userId && requestorRole !== 'admin') {
-      throw new ForbiddenError('Only admins can modify other admin accounts')
-    }
+    if (user.role === 'OWNER') throw new ForbiddenError('The owner account cannot be changed here')
 
     return prisma.user.update({
       where: { id: userId },
-      data: { name: input.name, role: input.role },
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      data: { name: input.name },
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
     })
   }
 
   async changePassword(companyId: string, userId: string, input: ChangePasswordInput) {
-    const user = await prisma.user.findFirst({ where: { id: userId, companyId } })
+    const user = await prisma.user.findFirst({ where: { id: userId, companyId, isActive: true } })
     if (!user) throw new NotFoundError('User')
 
     const match = await bcrypt.compare(input.currentPassword, user.passwordHash)
@@ -79,12 +79,27 @@ export class UsersService {
       throw new ForbiddenError('You cannot delete your own account')
     }
 
-    await this.findUserOrThrow(companyId, userId)
-    await prisma.user.delete({ where: { id: userId } })
+    const user = await this.findUserOrThrow(companyId, userId)
+    if (user.role === 'OWNER') throw new ForbiddenError('The owner account cannot be removed')
+    await prisma.$transaction(async (tx) => {
+      await tx.lead.updateMany({ where: { companyId, assignedUserId: userId }, data: { assignedUserId: null } })
+      await tx.user.update({ where: { id: userId }, data: { isActive: false } })
+    })
+  }
+
+  async reactivate(companyId: string, userId: string) {
+    const user = await prisma.user.findFirst({ where: { id: userId, companyId } })
+    if (!user) throw new NotFoundError('User')
+    if (user.role !== 'SELLER') throw new ForbiddenError('Only sellers can be reactivated here')
+    return prisma.user.update({
+      where: { id: userId },
+      data: { isActive: true },
+      select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+    })
   }
 
   private async findUserOrThrow(companyId: string, userId: string) {
-    const user = await prisma.user.findFirst({ where: { id: userId, companyId } })
+    const user = await prisma.user.findFirst({ where: { id: userId, companyId, isActive: true } })
     if (!user) throw new NotFoundError('User')
     return user
   }

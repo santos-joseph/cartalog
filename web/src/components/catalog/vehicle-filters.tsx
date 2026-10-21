@@ -50,10 +50,10 @@ export function VehicleFilters({ currentFilters }: Props) {
   })
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground flex items-center gap-2">
-          <SlidersHorizontal size={16} /> Filtros
+    <div className="rounded-[26px] border border-border bg-white p-6 lg:sticky lg:top-28">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="font-semibold text-foreground flex items-center gap-2 text-lg">
+          <SlidersHorizontal size={18} className="text-primary" /> Refine a busca
         </h3>
         {hasFilters && (
           <button onClick={clear} className="text-xs text-destructive flex items-center gap-1 hover:underline">
@@ -62,7 +62,7 @@ export function VehicleFilters({ currentFilters }: Props) {
         )}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Search */}
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -71,7 +71,7 @@ export function VehicleFilters({ currentFilters }: Props) {
             placeholder="Buscar marca, modelo..."
             value={form.search}
             onChange={(e) => apply({ search: e.target.value })}
-            className="w-full pl-8 pr-3 h-9 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+            className="w-full pl-9 pr-3 h-11 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
           />
         </div>
 
@@ -80,9 +80,9 @@ export function VehicleFilters({ currentFilters }: Props) {
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Ano</label>
           <div className="flex gap-2">
             <input type="number" placeholder="De" value={form.yearMin} onChange={(e) => apply({ yearMin: e.target.value })}
-              className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+              className="w-full h-11 px-2.5 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             <input type="number" placeholder="Até" value={form.yearMax} onChange={(e) => apply({ yearMax: e.target.value })}
-              className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+              className="w-full h-11 px-2.5 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export function VehicleFilters({ currentFilters }: Props) {
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Preço máximo (R$)</label>
           <input type="number" placeholder="Ex: 80000" value={form.priceMax} onChange={(e) => apply({ priceMax: e.target.value })}
-            className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            className="w-full h-11 px-2.5 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
         </div>
 
         {/* Sort */}
@@ -102,7 +102,7 @@ export function VehicleFilters({ currentFilters }: Props) {
               const [orderBy, order] = e.target.value.split(':')
               apply({ orderBy, order })
             }}
-            className="w-full h-9 px-2.5 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full h-11 px-2.5 rounded-xl border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="createdAt:desc">Mais recentes</option>
             <option value="price:asc">Menor preço</option>

@@ -2,122 +2,67 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  LayoutDashboard, Car, Users, Settings, LogOut,
-  MessageSquare, ChevronRight, ExternalLink, Globe,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ArrowUpRight, CarFront, LayoutGrid, LogOut, MessageCircleMore } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/stores/auth.store'
-import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/vehicles', label: 'Veículos', icon: Car },
-  { href: '/dashboard/leads', label: 'Leads / CRM', icon: MessageSquare },
-  { href: '/dashboard/catalog', label: 'Catálogo', icon: Globe },
-  { href: '/dashboard/team', label: 'Equipe', icon: Users },
-  { href: '/dashboard/settings', label: 'Configurações', icon: Settings },
+const links = [
+  { href: '/dashboard', label: 'Visão geral', icon: LayoutGrid, exact: true },
+  { href: '/dashboard/vehicles', label: 'Veículos', icon: CarFront },
+  { href: '/dashboard/leads', label: 'Leads', icon: MessageCircleMore },
 ]
 
-function getCatalogUrl(slug: string): string {
+function catalogUrl(slug: string) {
   if (typeof window === 'undefined') return '#'
   const { protocol, hostname, port } = window.location
-  const portPart = port ? `:${port}` : ''
-  const parts = hostname.split('.')
-  const baseDomain = parts.length > 1 ? parts.slice(1).join('.') : hostname
-  return `${protocol}//${slug}.${baseDomain}${portPart}`
+  const base = hostname.includes('.') ? hostname.split('.').slice(1).join('.') : hostname
+  return `${protocol}//${slug}.${base}${port ? `:${port}` : ''}`
 }
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { user, company, logout } = useAuthStore()
+  const visible = links.filter((item) => user?.role === 'OWNER' || item.href === '/dashboard/leads')
 
   function handleLogout() {
+    queryClient.clear()
     logout()
     router.push('/login')
   }
 
-  function isActive(href: string, exact?: boolean) {
-    return exact ? pathname === href : pathname.startsWith(href)
-  }
-
   return (
-    <aside className="w-64 bg-card border-r border-border flex flex-col h-screen">
-      <div className="p-5 pb-4">
-        <div className="flex items-center gap-3 mb-1">
-          <img src="/brand/cartalog-logo.png" alt="Cartalog" className="h-9 w-auto max-w-[142px] object-contain flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground truncate">{company?.name}</p>
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-5">
+      <div className="mx-auto max-w-[1240px] rounded-[26px] border border-black/[.07] bg-white/90 shadow-[0_8px_32px_rgba(20,20,25,.06)] backdrop-blur-2xl">
+        <div className="flex min-h-[70px] items-center gap-3 px-4 sm:px-6">
+          <Link href={user?.role === 'SELLER' ? '/dashboard/leads' : '/dashboard'} className="shrink-0" aria-label="Cartalog, início">
+            <img src="/brand/cartalog-logo.png" alt="Cartalog" className="h-9 w-auto max-w-[146px] object-contain" />
+          </Link>
+          <div className="mx-3 hidden h-7 w-px bg-border lg:block" />
+          <span className="hidden max-w-36 truncate text-xs font-medium text-muted-foreground lg:block">{company?.name}</span>
+          <nav className="ml-auto hidden items-center rounded-full bg-[#f5f5f7] p-1 md:flex" aria-label="Menu principal">
+            {visible.map((item) => {
+              const Icon = item.icon
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              return <Link key={item.href} href={item.href} className={cn('flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition-colors', active ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}><Icon size={16} className={active ? 'text-primary' : ''} />{item.label}</Link>
+            })}
+          </nav>
+          <div className="ml-auto flex items-center gap-2 md:ml-2">
+            {company?.slug && <a href={catalogUrl(company.slug)} target="_blank" rel="noopener noreferrer" className="hidden items-center gap-1 rounded-full border border-border px-3 py-2 text-xs font-semibold text-foreground hover:border-primary/40 hover:text-primary sm:inline-flex">Catálogo <ArrowUpRight size={14} /></a>}
+            <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-[#fff0f1] text-xs font-bold text-primary sm:flex" title={user?.name}>{user?.name?.charAt(0).toUpperCase()}</div>
+            <button onClick={handleLogout} aria-label="Sair" title="Sair" className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><LogOut size={17} /></button>
           </div>
         </div>
+        <nav className="flex gap-1 overflow-x-auto border-t border-border/70 px-3 py-2 md:hidden" aria-label="Menu principal">
+          {visible.map((item) => {
+            const Icon = item.icon
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+            return <Link key={item.href} href={item.href} className={cn('flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold', active ? 'bg-[#fff0f1] text-primary' : 'text-muted-foreground')}><Icon size={15} />{item.label}</Link>
+          })}
+        </nav>
       </div>
-
-      <Separator />
-
-      {/* Nav */}
-      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          const active = isActive(item.href, item.exact)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                active
-                  ? 'bg-gradient-primary text-white shadow-sm'
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              <Icon size={17} className="flex-shrink-0" />
-              <span className="flex-1">{item.label}</span>
-              {active && <ChevronRight size={14} className="opacity-70" />}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Catalog link */}
-      {company?.slug && (
-        <>
-          <Separator />
-          <div className="p-3">
-            <a
-              href={getCatalogUrl(company.slug)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:bg-accent hover:text-primary transition-colors font-medium"
-            >
-              <ExternalLink size={14} />
-              Ver catálogo público
-            </a>
-          </div>
-        </>
-      )}
-
-      <Separator />
-
-      {/* User */}
-      <div className="p-3 space-y-1">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted/50">
-          <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {user?.name.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-foreground truncate">{user?.name}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/5 px-3 py-2 rounded-lg transition-colors w-full font-medium"
-        >
-          <LogOut size={15} />
-          Sair
-        </button>
-      </div>
-    </aside>
+    </header>
   )
 }

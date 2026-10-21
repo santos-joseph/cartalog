@@ -8,12 +8,11 @@ export const createUserSchema = z.object({
     .min(8)
     .regex(/[A-Z]/, 'Must contain uppercase')
     .regex(/[0-9]/, 'Must contain number'),
-  role: z.enum(['ADMIN', 'MANAGER', 'SELLER']).default('SELLER'),
+  role: z.literal('SELLER').default('SELLER'),
 })
 
 export const updateUserSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  role: z.enum(['ADMIN', 'MANAGER', 'SELLER']).optional(),
 })
 
 export const changePasswordSchema = z.object({

@@ -111,7 +111,7 @@ async function main() {
   if (existingStatuses.length === 0) {
     for (let i = 0; i < statusNames.length; i++) {
       await prisma.leadStatus.create({
-        data: { companyId: company.id, name: statusNames[i], position: i + 1 },
+        data: { companyId: company.id, name: statusNames[i], position: i + 1, kind: statusNames[i] === 'Perdido' ? 'lost' : statusNames[i] === 'Ganho' ? 'won' : 'open' },
       })
     }
   }
@@ -137,7 +137,7 @@ async function main() {
       name: 'Administrador Demo',
       email: 'admin@demo.com',
       passwordHash: adminHash,
-      role: 'ADMIN',
+      role: 'OWNER',
     },
   })
 

@@ -5,28 +5,29 @@
    Design tokens — white + red identity theme
    ------------------------------------------------------- */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.16 0.015 20);
+  --background: #fbfbfd;
+  --foreground: #1d1d1f;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.015 20);
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
 
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.015 20);
 
-  --primary: oklch(0.58 0.24 25);
-  --primary-foreground: oklch(0.984 0 0);
-  --primary-dark: oklch(0.38 0.18 25);
+  --primary: #d20a1e;
+  --primary-foreground: #ffffff;
+  --primary-dark: #a60818;
 
-  --secondary: oklch(0.96 0.02 25);
-  --secondary-foreground: oklch(0.25 0.05 20);
-  --accent-foreground: oklch(0.25 0.05 20);
+  --secondary: #f5f5f7;
+  --secondary-brand: #a60818;
+  --secondary-foreground: #1d1d1f;
+  --accent-foreground: #1d1d1f;
 
-  --muted: oklch(0.96 0.005 20);
-  --muted-foreground: oklch(0.46 0.015 20);
+  --muted: #f5f5f7;
+  --muted-foreground: #6e6e73;
 
-  --accent: oklch(0.94 0.045 25);
-  --accent-foreground: oklch(0.25 0.05 20);
+  --accent: #fff0f1;
+  --accent-foreground: #9e0918;
 
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0 0);
@@ -37,11 +38,11 @@
   --warning: oklch(0.7 0.19 65);
   --warning-foreground: oklch(0.13 0 0);
 
-  --border: oklch(0.9 0.01 20);
-  --input: oklch(0.9 0.01 20);
-  --ring: oklch(0.58 0.24 25);
+  --border: #e9e9ed;
+  --input: #dedee3;
+  --ring: #d20a1e;
 
-  --radius: 0.5rem;
+  --radius: 0.9rem;
 }
 
 /* -------------------------------------------------------
@@ -83,11 +84,7 @@
   --font-sans: var(--font-geist), system-ui, -apple-system, sans-serif;
 
   /* bg-gradient-primary utility */
-  --background-image-gradient-primary: linear-gradient(
-    135deg,
-    oklch(0.58 0.24 25) 0%,
-    oklch(0.38 0.18 25) 100%
-  );
+  --background-image-gradient-primary: linear-gradient(135deg, var(--primary), var(--secondary-brand));
 }
 
 /* -------------------------------------------------------
@@ -106,6 +103,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.5;
+    letter-spacing: -0.01em;
     min-height: 100%;
   }
 
@@ -132,6 +130,22 @@
     background-color: oklch(0.68 0.03 20);
   }
 }
+
+.surface-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 1px 2px rgba(18, 18, 20, .03), 0 12px 36px rgba(18, 18, 20, .025);
+}
+
+.page-title { font-size: clamp(1.8rem, 2.4vw, 2.4rem); font-weight: 700; letter-spacing: -.04em; line-height: 1.12; }
+.page-eyebrow { color: var(--primary); font-size: .72rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+
+.catalog-theme .text-primary, .catalog-theme .page-eyebrow { color: var(--primary-ink); }
+.catalog-theme { font-family: var(--catalog-font, var(--font-geist), system-ui, sans-serif); }
+.catalog-hero { background: radial-gradient(ellipse at 12% 0%, var(--accent), transparent 55%), radial-gradient(ellipse at 90% 85%, var(--secondary-accent), var(--background) 60%); }
+.catalog-title-accent { background: linear-gradient(120deg, var(--primary-ink), var(--secondary-ink)); background-clip: text; color: transparent; }
+.catalog-placeholder { background: radial-gradient(circle at 50% 30%, var(--accent), #f3f3f5); }
 
 /* -------------------------------------------------------
    Utilities

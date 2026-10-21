@@ -18,6 +18,7 @@ declare module '@fastify/jwt' {
 
 declare module 'fastify' {
   interface FastifyRequest {
+    platformUser: { id: string; name: string; email: string; role: string }
     tenant: {
       id: string
       name: string
@@ -35,6 +36,8 @@ declare module 'fastify' {
         theme: string | null
         showPrices: boolean
         showWhatsappButton: boolean
+        maintenanceEnabled: boolean
+        maintenanceMessage: string | null
       } | null
       seoSettings: {
         id: string
@@ -42,6 +45,12 @@ declare module 'fastify' {
         metaDescription: string | null
         metaKeywords: string | null
       } | null
+      companyLocations: Array<{
+        id: string
+        address: string | null
+        city: string | null
+        state: string | null
+      }>
     }
   }
 }

@@ -5,8 +5,10 @@ export const leadsService = {
   stats: () => api.get('/leads/stats'),
   statuses: () => api.get('/leads/statuses'),
   findById: (id: string) => api.get(`/leads/${id}`),
-  update: (id: string, data: { statusId?: string | null; assignedUserId?: string }) =>
+  update: (id: string, data: { statusId?: string | null; assignedUserId?: string | null; lossReason?: string }) =>
     api.patch(`/leads/${id}`, data),
+  claim: (id: string) => api.post(`/leads/${id}/claim`, {}),
+  release: (id: string) => api.post(`/leads/${id}/release`, {}),
   addInteraction: (id: string, data: { type: string; note?: string }) =>
     api.post(`/leads/${id}/interactions`, data),
   createStatus: (data: { name: string; position?: number }) =>

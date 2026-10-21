@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../../database/prisma'
-import { authMiddleware } from '../../shared/middlewares/auth.middleware'
+import { authMiddleware, requireRole } from '../../shared/middlewares/auth.middleware'
 import { NotFoundError, ConflictError } from '../../shared/errors/app-error'
 import { slugify } from '../../shared/utils/slug'
 
@@ -24,7 +24,7 @@ export async function categoriesRoutes(app: FastifyInstance) {
   })
 
   // POST /companies/categories
-  app.post('/', async (request, reply) => {
+  app.post('/', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
     const { name } = createCategorySchema.parse(request.body)
     const slug = slugify(name)
 
@@ -40,7 +40,7 @@ export async function categoriesRoutes(app: FastifyInstance) {
   })
 
   // PUT /companies/categories/:id
-  app.put('/:id', async (request, reply) => {
+  app.put('/:id', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const { name } = updateCategorySchema.parse(request.body)
 
@@ -67,7 +67,7 @@ export async function categoriesRoutes(app: FastifyInstance) {
   })
 
   // DELETE /companies/categories/:id
-  app.delete('/:id', async (request, reply) => {
+  app.delete('/:id', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const category = await prisma.category.findFirst({
       where: { id, companyId: request.user.companyId },

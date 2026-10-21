@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { ArrowLeft, Save, ImagePlus, X, Star } from 'lucide-react'
+import { ArrowLeft, Save, ImagePlus, X, Star, CarFront, Check } from 'lucide-react'
 import Link from 'next/link'
 import { vehiclesService } from '@/services/vehicles.service'
 import { companiesService } from '@/services/companies.service'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
+import { formatCurrency } from '@/lib/utils'
 
 interface LocalImage {
   file: File
@@ -111,20 +112,11 @@ export default function NewVehiclePage() {
     setImages((prev) => prev.map((img, i) => ({ ...img, isCover: i === idx })))
   }
 
-  const selectClass = "w-full h-10 px-3 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
+  const selectClass = "w-full h-11 px-3 rounded-xl border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard/vehicles">
-          <Button variant="ghost" size="icon-sm"><ArrowLeft size={16} /></Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Novo Veículo</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Adicione um veículo ao seu catálogo</p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <div><Link href="/dashboard/vehicles" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> Voltar ao estoque</Link><p className="page-eyebrow mb-2 mt-7">Novo no catálogo</p><h1 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-.055em] leading-[1.08]">Conte a história deste carro.</h1><p className="mt-3 text-muted-foreground">Complete os dados e veja como ele vai aparecer para o cliente.</p></div>
 
       {error && (
         <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3 text-sm text-destructive">
@@ -132,6 +124,7 @@ export default function NewVehiclePage() {
         </div>
       )}
 
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><div className="min-w-0 space-y-6">
       {/* ── Fotos ── */}
       <Card>
         <CardHeader>
@@ -139,12 +132,12 @@ export default function NewVehiclePage() {
           <p className="text-sm text-muted-foreground">Adicione até 20 fotos. A primeira (ou marcada com estrela) será a capa.</p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {images.map((img, idx) => (
               <div key={idx} className="relative group aspect-[4/3] rounded-xl overflow-hidden border border-border bg-muted">
                 <img src={img.preview} alt="" className="w-full h-full object-cover" />
                 {/* Overlay de ações */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div className="absolute inset-0 bg-black/35 opacity-100 sm:bg-black/50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button
                     type="button"
                     onClick={() => setCover(idx)}
@@ -197,7 +190,7 @@ export default function NewVehiclePage() {
       <Card>
         <CardHeader><CardTitle>Identificação</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Marca *</label>
               <select value={form.brandId} onChange={set('brandId')} required className={selectClass}>
@@ -213,7 +206,7 @@ export default function NewVehiclePage() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input label="Ano *" type="number" value={String(form.year)} onChange={set('year')} min="1900" max={String(new Date().getFullYear() + 1)} required />
             <Input label="Quilometragem" type="number" value={String(form.mileage)} onChange={set('mileage')} min="0" placeholder="0" />
             <div className="flex flex-col gap-1.5">
@@ -232,11 +225,11 @@ export default function NewVehiclePage() {
       <Card>
         <CardHeader><CardTitle>Detalhes</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="Preço (R$) *" type="number" step="0.01" value={form.price} onChange={set('price')} placeholder="Ex: 45000" required />
             <Input label="Cor" value={form.color} onChange={set('color')} placeholder="Ex: Branco" />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Combustível</label>
               <select value={form.fuelId} onChange={set('fuelId')} className={selectClass}>
@@ -291,9 +284,10 @@ export default function NewVehiclePage() {
         </Card>
       )}
 
-      <div className="flex justify-end gap-3 pb-8">
+      </div><aside className="space-y-5 lg:sticky lg:top-28 lg:self-start"><div className="overflow-hidden rounded-[28px] border border-border bg-white"><div className="aspect-[16/10] bg-[radial-gradient(circle_at_50%_30%,#fff0f1,#f4f4f6)]">{images.find((img) => img.isCover) ? <img src={images.find((img) => img.isCover)?.preview} alt="Prévia do veículo" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-primary/35"><CarFront size={58} strokeWidth={1.2} /></div>}</div><div className="p-6"><p className="page-eyebrow mb-2">Prévia do anúncio</p><h2 className="text-xl font-semibold tracking-tight">{(brands as any[]).find((brand: any) => brand.id === form.brandId)?.name || 'Marca'} {(models as any[]).find((model: any) => model.id === form.modelId)?.name || 'e modelo'}</h2><p className="mt-1 text-sm text-muted-foreground">{form.year || 'Ano'} · {form.mileage || 0} km</p><p className="mt-5 text-2xl font-semibold tracking-tight text-primary">{form.price ? formatCurrency(form.price) : 'Preço a definir'}</p></div></div><div className="rounded-[28px] bg-[#1d1d1f] p-6 text-white"><p className="text-xs font-semibold uppercase tracking-[.14em] text-white/50">Antes de publicar</p><div className="mt-5 space-y-4">{['Identifique marca e modelo', 'Informe o preço e os detalhes', 'Adicione fotos de qualidade'].map((step) => <div key={step} className="flex items-center gap-3 text-sm"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10"><Check size={14} /></span>{step}</div>)}</div></div></aside></div>
+      <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-6 pb-8">
         <Link href="/dashboard/vehicles"><Button variant="outline">Cancelar</Button></Link>
-        <Button variant="gradient" loading={mutation.isPending} onClick={() => mutation.mutate(form)}>
+        <Button loading={mutation.isPending} onClick={() => mutation.mutate(form)}>
           <Save size={16} />
           {mutation.isPending ? 'Salvando...' : `Salvar veículo${images.length > 0 ? ` + ${images.length} foto${images.length > 1 ? 's' : ''}` : ''}`}
         </Button>

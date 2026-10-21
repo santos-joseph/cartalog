@@ -35,7 +35,7 @@ export async function tenantMiddleware(request: FastifyRequest, _reply: FastifyR
 
   const company = await prisma.company.findUnique({
     where: { slug },
-    include: { siteSettings: true, seoSettings: true },
+    include: { siteSettings: true, seoSettings: true, companyLocations: { take: 1 } },
   })
 
   if (!company) throw new AppError('Catalog not found', 404)

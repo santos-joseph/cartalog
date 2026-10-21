@@ -1,0 +1,16 @@
+export const colors = {
+  red: '#d20a1e',
+  redDark: '#a60818',
+  redSoft: '#fff0f1',
+  background: '#f7f7f8',
+  surface: '#ffffff',
+  ink: '#1d1d1f',
+  muted: '#6e6e73',
+  faint: '#9b9ba2',
+  border: '#e9e9ed',
+  dark: '#1d1d1f',
+  green: '#117a52',
+  greenSoft: '#e9f7f0',
+  amber: '#936218',
+  amberSoft: '#fff5e4',
+} as const

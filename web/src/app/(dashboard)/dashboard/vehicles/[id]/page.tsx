@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowLeft, Save, Trash2, Star, StarOff, ImagePlus, Loader2, CheckCircle2,
+  ArrowLeft, Save, Trash2, Star, StarOff, ImagePlus, Loader2, CheckCircle2, CarFront,
 } from 'lucide-react'
 import Link from 'next/link'
 import { vehiclesService } from '@/services/vehicles.service'
@@ -15,9 +15,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import type { Vehicle } from '@/types'
+import { formatCurrency } from '@/lib/utils'
 
 const selectClass =
-  'w-full h-10 px-3 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors'
+  'w-full h-11 px-3 rounded-xl border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors'
 
 export default function EditVehiclePage() {
   const { id } = useParams<{ id: string }>()
@@ -164,20 +165,11 @@ export default function EditVehiclePage() {
     )
   }
 
+  const coverImage = vehicle.images?.find((image) => image.isCover) ?? vehicle.images?.[0]
+
   return (
-    <div className="space-y-6 max-w-3xl">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard/vehicles">
-          <Button variant="ghost" size="icon-sm"><ArrowLeft size={16} /></Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Editar Veículo</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {vehicle.model.brand.name} {vehicle.model.name} {vehicle.year}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <div><Link href="/dashboard/vehicles" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"><ArrowLeft size={16} /> Voltar ao estoque</Link><p className="page-eyebrow mb-2 mt-7">Editar anúncio</p><h1 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-.055em] leading-[1.08]">{vehicle.model.brand.name} {vehicle.model.name}</h1><p className="mt-3 text-muted-foreground">Revise as informações e mantenha o catálogo atualizado.</p></div>
 
       {error && (
         <div className="rounded-lg bg-destructive/5 border border-destructive/20 px-4 py-3 text-sm text-destructive">
@@ -185,6 +177,7 @@ export default function EditVehiclePage() {
         </div>
       )}
 
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_330px]"><div className="min-w-0 space-y-6">
       {/* Images */}
       <Card>
         <CardHeader>
@@ -202,7 +195,7 @@ export default function EditVehiclePage() {
                   alt=""
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                <div className="absolute inset-0 bg-black/35 opacity-100 sm:bg-black/55 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <button
                     onClick={() => setCoverMutation.mutate(img.id)}
                     title={img.isCover ? 'Foto de capa' : 'Definir como capa'}
@@ -260,7 +253,7 @@ export default function EditVehiclePage() {
       <Card>
         <CardHeader><CardTitle>Identificação</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Marca *</label>
               <select value={form.brandId} onChange={set('brandId')} required className={selectClass}>
@@ -280,7 +273,7 @@ export default function EditVehiclePage() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
               label="Ano *"
               type="number"
@@ -314,7 +307,7 @@ export default function EditVehiclePage() {
       <Card>
         <CardHeader><CardTitle>Detalhes</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Preço (R$) *"
               type="number"
@@ -326,7 +319,7 @@ export default function EditVehiclePage() {
             />
             <Input label="Cor" value={form.color} onChange={set('color')} placeholder="Ex: Branco" />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Combustível</label>
               <select value={form.fuelId} onChange={set('fuelId')} className={selectClass}>
@@ -390,7 +383,8 @@ export default function EditVehiclePage() {
         </Card>
       )}
 
-      <div className="flex items-center justify-end gap-3">
+      </div><aside className="space-y-5 lg:sticky lg:top-28 lg:self-start"><div className="overflow-hidden rounded-[28px] border border-border bg-white"><div className="aspect-[16/10] bg-[radial-gradient(circle_at_50%_30%,#fff0f1,#f4f4f6)]">{coverImage ? <img src={`${apiUrl}${coverImage.imageUrl}`} alt="Prévia do veículo" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-primary/35"><CarFront size={58} strokeWidth={1.2} /></div>}</div><div className="p-6"><p className="page-eyebrow mb-2">Como está no catálogo</p><h2 className="text-xl font-semibold tracking-tight">{vehicle.model.brand.name} {vehicle.model.name}</h2><p className="mt-1 text-sm text-muted-foreground">{form.year} · {form.mileage} km</p><p className="mt-5 text-2xl font-semibold tracking-tight text-primary">{form.price ? formatCurrency(form.price) : 'Preço a definir'}</p></div></div><div className="rounded-[28px] bg-[#1d1d1f] p-6 text-white"><p className="text-xs font-semibold uppercase tracking-[.14em] text-white/50">Dica para o anúncio</p><h3 className="mt-4 text-lg font-semibold">Fotos e detalhes vendem a primeira visita.</h3><p className="mt-2 text-sm leading-6 text-white/60">Mantenha imagens, preço e status sempre atualizados para facilitar o contato do cliente.</p></div></aside></div>
+      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-6">
         {saveMutation.isSuccess && (
           <span className="flex items-center gap-1.5 text-sm text-success">
             <CheckCircle2 size={15} />
@@ -400,7 +394,7 @@ export default function EditVehiclePage() {
         <Link href="/dashboard/vehicles">
           <Button variant="outline">Cancelar</Button>
         </Link>
-        <Button variant="gradient" loading={saveMutation.isPending} onClick={() => saveMutation.mutate(form)}>
+        <Button loading={saveMutation.isPending} onClick={() => saveMutation.mutate(form)}>
           <Save size={16} />
           Salvar alterações
         </Button>

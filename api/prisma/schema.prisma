@@ -12,6 +12,95 @@ datasource db {
   provider = "postgresql"
 }
 
+model DemoRequest {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(100)
+  email       String   @db.VarChar(255)
+  phone       String   @db.VarChar(30)
+  companyName String   @map("company_name") @db.VarChar(100)
+  message     String?  @db.Text
+  emailStatus String   @default("pending") @map("email_status") @db.VarChar(20)
+  createdAt   DateTime @default(now()) @map("created_at")
+  emailedAt   DateTime? @map("emailed_at")
+
+  @@index([createdAt])
+  @@map("demo_requests")
+}
+
+model PlatformUser {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.Text
+  role         String   @default("PLATFORM_ADMIN") @db.VarChar(30)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  auditLogs PlatformAuditLog[]
+
+  @@map("platform_users")
+}
+
+model PlatformAuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId   String   @map("actor_id") @db.Uuid
+  action    String   @db.VarChar(80)
+  target    String   @db.VarChar(120)
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor PlatformUser @relation(fields: [actorId], references: [id])
+
+  @@index([createdAt])
+  @@map("platform_audit_logs")
+}
+
+model Plan {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code            String   @unique @db.VarChar(50)
+  name            String   @db.VarChar(100)
+  priceCents      Int      @default(0) @map("price_cents")
+  billingInterval String   @default("monthly") @map("billing_interval") @db.VarChar(20)
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  subscriptions CompanySubscription[]
+
+  @@map("plans")
+}
+
+model CompanySubscription {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId        String    @unique @map("company_id") @db.Uuid
+  planId           String    @map("plan_id") @db.Uuid
+  status           String    @default("trialing") @db.VarChar(20)
+  startsAt         DateTime  @default(now()) @map("starts_at")
+  currentPeriodEnd DateTime? @map("current_period_end")
+  notes            String?   @db.Text
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  plan    Plan    @relation(fields: [planId], references: [id])
+
+  @@index([status])
+  @@map("company_subscriptions")
+}
+
+model SiteMaintenanceEvent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  enabled   Boolean
+  message   String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@map("site_maintenance_events")
+}
+
 // ============================================================
 // COMPANIES
 // ============================================================
@@ -42,6 +131,8 @@ model Company {
   leadTags         LeadTag[]
   featuredVehicles FeaturedVehicle[]
   searches         Search[]
+  subscription     CompanySubscription?
+  maintenanceEvents SiteMaintenanceEvent[]
 
   @@map("companies")
 }
@@ -57,12 +148,14 @@ model User {
   email        String   @db.VarChar
   passwordHash String   @map("password_hash") @db.Text
   role         String   @db.VarChar
+  isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
 
   company          Company           @relation(fields: [companyId], references: [id])
   leadInteractions LeadInteraction[]
   leadFollowups    LeadFollowup[]
   assignedLeads    Lead[]            @relation("AssignedLeads")
+  maintenanceEvents SiteMaintenanceEvent[]
 
   @@unique([companyId, email])
   @@index([companyId])
@@ -79,6 +172,14 @@ model SiteSettings {
   theme              String? @db.VarChar
   showPrices         Boolean @default(true) @map("show_prices")
   showWhatsappButton Boolean @default(true) @map("show_whatsapp_button")
+  backgroundColor    String? @map("background_color") @db.VarChar
+  fontFamily         String? @map("font_family") @db.VarChar
+  homeHeadline       String? @map("home_headline") @db.VarChar
+  homeSubheadline    String? @map("home_subheadline") @db.Text
+  showHomeStats      Boolean @default(true) @map("show_home_stats")
+  maintenanceEnabled Boolean @default(false) @map("maintenance_enabled")
+  maintenanceMessage String? @map("maintenance_message") @db.VarChar(500)
+  maintenanceUpdatedAt DateTime? @map("maintenance_updated_at")
 
   company Company @relation(fields: [companyId], references: [id])
 
@@ -150,6 +251,7 @@ model Page {
   title       String  @db.VarChar
   slug        String  @db.VarChar
   content     String  @db.Text
+  blocks      Json?
   isPublished Boolean @default(false) @map("is_published")
 
   company Company @relation(fields: [companyId], references: [id])
@@ -354,6 +456,7 @@ model LeadStatus {
   companyId String @map("company_id") @db.Uuid
   name      String @db.VarChar
   position  Int?
+  kind      String @default("open") @db.VarChar
 
   company Company @relation(fields: [companyId], references: [id])
   leads   Lead[]

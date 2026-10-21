@@ -11,7 +11,7 @@ import { slugify } from '../../shared/utils/slug'
 import type { LoginInput, RefreshInput, RegisterInput } from './auth.schema'
 
 export class AuthService {
-  async register(input: RegisterInput) {
+  async register(input: RegisterInput, planId?: string) {
     const slug = slugify(input.companyName)
 
     const [existingSlug, existingEmail] = await Promise.all([
@@ -39,11 +39,11 @@ export class AuthService {
 
       await tx.leadStatus.createMany({
         data: [
-          { companyId: company.id, name: 'Novo', position: 0 },
-          { companyId: company.id, name: 'Em contato', position: 1 },
-          { companyId: company.id, name: 'Negociando', position: 2 },
-          { companyId: company.id, name: 'Fechado', position: 3 },
-          { companyId: company.id, name: 'Perdido', position: 4 },
+          { companyId: company.id, name: 'Novo', position: 0, kind: 'open' },
+          { companyId: company.id, name: 'Em atendimento', position: 1, kind: 'open' },
+          { companyId: company.id, name: 'Proposta enviada', position: 2, kind: 'open' },
+          { companyId: company.id, name: 'Fechado', position: 3, kind: 'won' },
+          { companyId: company.id, name: 'Perdido', position: 4, kind: 'lost' },
         ],
       })
 
@@ -53,9 +53,11 @@ export class AuthService {
           name: input.userName,
           email: input.userEmail,
           passwordHash,
-          role: 'ADMIN',
+          role: 'OWNER',
         },
       })
+
+      if (planId) await tx.companySubscription.create({ data: { companyId: company.id, planId, status: 'trialing' } })
 
       return { company, user }
     })
@@ -88,7 +90,7 @@ export class AuthService {
       where: { companyId_email: { companyId: company.id, email: input.email } },
     })
 
-    if (!user) throw new UnauthorizedError('Invalid credentials')
+    if (!user || !user.isActive) throw new UnauthorizedError('Invalid credentials')
 
     const passwordMatch = await bcrypt.compare(input.password, user.passwordHash)
     if (!passwordMatch) throw new UnauthorizedError('Invalid credentials')
@@ -113,7 +115,7 @@ export class AuthService {
         include: { company: { select: { id: true } } },
       })
 
-      if (!user) throw new UnauthorizedError('Invalid refresh token')
+      if (!user || !user.isActive) throw new UnauthorizedError('Invalid refresh token')
 
       const accessToken = generateAccessToken({
         sub: user.id,
@@ -136,7 +138,7 @@ export class AuthService {
       },
     })
 
-    if (!user) throw new NotFoundError('User')
+    if (!user || !user.isActive) throw new NotFoundError('User')
 
     return {
       id: user.id,

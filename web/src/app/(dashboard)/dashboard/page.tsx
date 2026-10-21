@@ -1,193 +1,63 @@
 'use client'
 
+import { useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { Car, MessageSquare, TrendingUp, BarChart3 } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, CarFront, CircleDot, MessageCircleMore, Plus, TrendingUp } from 'lucide-react'
 import { dashboardService } from '@/services/dashboard.service'
 import { useAuthStore } from '@/stores/auth.store'
 import { formatCurrency, formatRelativeDate } from '@/lib/utils'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DashboardOverview } from '@/types'
 
-function vehicleTitle(v: { model: { name: string; brand: { name: string } }; year: number }) {
-  return `${v.model.brand.name} ${v.model.name}`
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-32 rounded-2xl" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
-      </div>
-    </div>
-  )
-}
-
 export default function DashboardPage() {
+  const router = useRouter()
+  const user = useAuthStore((s) => s.user)
   const company = useAuthStore((s) => s.company)
-  const { data, isLoading } = useQuery<DashboardOverview>({
-    queryKey: ['dashboard'],
-    queryFn: () => dashboardService.overview().then((r) => r.data),
+  useEffect(() => { if (user?.role === 'SELLER') router.replace('/dashboard/leads') }, [user?.role, router])
+  const { data, isLoading, isError } = useQuery<DashboardOverview>({
+    queryKey: ['dashboard'], queryFn: () => dashboardService.overview().then((r) => r.data), enabled: user?.role === 'OWNER',
   })
+  if (user?.role === 'SELLER') return null
+  if (isLoading) return <div className="grid gap-5 md:grid-cols-3"><Skeleton className="h-72 rounded-[30px] md:col-span-2" /><Skeleton className="h-72 rounded-[30px]" /><Skeleton className="h-52 rounded-[30px] md:col-span-3" /></div>
+  if (isError || !data) return <div className="rounded-[28px] border border-border bg-white p-10"><h1 className="text-xl font-semibold">Não foi possível carregar o painel</h1><p className="mt-2 text-sm text-muted-foreground">Atualize a página para tentar novamente.</p></div>
 
-  if (isLoading) return <DashboardSkeleton />
-  if (!data) return null
+  const openLeads = data.leads.byStatus.filter((status) => status.kind === 'open').reduce((sum, status) => sum + status.count, 0)
+  const maxStage = Math.max(1, ...data.leads.byStatus.map((status) => status.count))
 
-  const negotiating = data.leads.byStatus.find((s) => s.name === 'Negociando')?.count ?? 0
-  const contacted = data.leads.byStatus.find((s) => s.name === 'Contactado')?.count ?? 0
-
-  const kpis = [
-    {
-      title: 'Veículos Disponíveis',
-      value: data.vehicles.available,
-      sub: `${data.vehicles.total} total`,
-      icon: Car,
-      iconBg: 'bg-primary/10',
-      iconColor: 'text-primary',
-    },
-    {
-      title: 'Leads este Mês',
-      value: data.leads.newThisMonth,
-      sub: `${data.leads.total} total`,
-      icon: TrendingUp,
-      iconBg: 'bg-success/10',
-      iconColor: 'text-success',
-    },
-    {
-      title: 'Em Negociação',
-      value: negotiating,
-      sub: `${contacted} contactados`,
-      icon: MessageSquare,
-      iconBg: 'bg-warning/15',
-      iconColor: 'text-warning-foreground',
-    },
-    {
-      title: 'Vendidos',
-      value: data.vehicles.sold,
-      sub: `${data.vehicles.reserved} reservados`,
-      icon: BarChart3,
-      iconBg: 'bg-muted',
-      iconColor: 'text-muted-foreground',
-    },
-  ]
-
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="bg-gradient-primary rounded-2xl p-8 text-white relative overflow-hidden">
-        <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
-        <div className="absolute -bottom-12 right-24 w-32 h-32 rounded-full bg-white/5" />
-        <div className="relative">
-          <h1 className="text-3xl font-bold mb-1">Bem-vindo de volta 👋</h1>
-          <p className="text-white/70 text-sm">Confira o desempenho do catálogo de <span className="font-semibold text-white">{company?.name}</span></p>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((item) => {
-          const Icon = item.icon
-          return (
-            <Card key={item.title} className="p-6 hover:shadow-md transition-shadow">
-              <div className={`w-11 h-11 rounded-xl ${item.iconBg} flex items-center justify-center mb-4`}>
-                <Icon className={`${item.iconColor}`} size={22} />
-              </div>
-              <p className="text-muted-foreground text-sm font-medium mb-1">{item.title}</p>
-              <p className="text-3xl font-bold text-foreground">{item.value}</p>
-              <p className="text-xs text-muted-foreground mt-2">{item.sub}</p>
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Top Vehicles + Recent Leads */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <div className="p-6 pb-4 flex items-center gap-2 border-b border-border">
-            <Car className="text-primary" size={18} />
-            <h3 className="font-semibold text-foreground">Veículos Mais Vistos</h3>
-          </div>
-          <div className="p-4">
-            {data.topViewedVehicles.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground text-sm">
-                Nenhum veículo com visualizações ainda
-              </div>
-            ) : (
-              <div className="space-y-1">
-                {data.topViewedVehicles.map((v) => (
-                  <div key={v.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent transition-colors">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-primary flex-shrink-0 flex items-center justify-center">
-                      <Car className="text-white" size={17} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm truncate">{vehicleTitle(v)} {v.year}</p>
-                      <p className="text-xs text-muted-foreground">{formatCurrency(v.price)}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-semibold text-foreground text-sm">{v.viewCount}</p>
-                      <p className="text-xs text-muted-foreground">views</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-6 pb-4 flex items-center gap-2 border-b border-border">
-            <MessageSquare className="text-primary" size={18} />
-            <h3 className="font-semibold text-foreground">Leads Recentes</h3>
-          </div>
-          <div className="p-4">
-            {data.recentLeads.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground text-sm">Nenhum lead ainda</div>
-            ) : (
-              <div className="space-y-1">
-                {data.recentLeads.map((lead) => (
-                  <div key={lead.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent transition-colors">
-                    <div className="w-9 h-9 rounded-full bg-gradient-primary flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                      {lead.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatRelativeDate(lead.createdAt)}</p>
-                    </div>
-                    <Badge variant="muted">{lead.status?.name ?? '—'}</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Sales Funnel */}
-      {data.leads.byStatus.length > 0 && (
-        <Card>
-          <div className="p-6 pb-4 flex items-center gap-2 border-b border-border">
-            <BarChart3 className="text-primary" size={18} />
-            <h3 className="font-semibold text-foreground">Funil de Vendas</h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {data.leads.byStatus.map((status, i) => (
-                <div key={status.id} className="relative">
-                  <div className="bg-accent rounded-xl p-4 text-center border border-border">
-                    <p className="text-2xl font-bold text-primary">{status.count}</p>
-                    <p className="text-xs font-medium text-muted-foreground mt-1">{status.name}</p>
-                  </div>
-                  {i < data.leads.byStatus.length - 1 && (
-                    <div className="hidden md:block absolute -right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-lg z-10">›</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
+  return <div className="space-y-8">
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div><p className="page-eyebrow mb-2">Área de trabalho / {company?.name}</p><h1 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-.055em] leading-[1.08]">Bom dia, {user?.name?.split(' ')[0]}.</h1><p className="mt-3 text-muted-foreground">Aqui está o movimento da sua loja.</p></div>
+      <Link href="/dashboard/vehicles/new" className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white hover:bg-primary-dark"><Plus size={17} /> Cadastrar veículo</Link>
     </div>
-  )
+
+    <div className="grid gap-5 md:grid-cols-[1.55fr_1fr]">
+      <section className="relative flex min-h-[305px] flex-col justify-between overflow-hidden rounded-[32px] border border-border bg-white p-7 sm:p-9 shadow-[0_14px_44px_rgba(20,20,25,.035)]">
+        <div className="absolute -right-20 -top-24 h-80 w-80 rounded-full border-[45px] border-primary/[.035]" aria-hidden="true" />
+        <div className="relative"><span className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-primary"><CircleDot size={13} /> Operação em tempo real</span><h2 className="mt-5 max-w-lg text-3xl font-semibold tracking-[-.05em] sm:text-[2.65rem] sm:leading-[1.12]">Seu estoque e seus leads, sob controle.</h2><p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">Acompanhe o que entrou, o que está em atendimento e os veículos prontos para vender.</p></div>
+        <div className="relative mt-8 flex flex-wrap gap-3"><Link href="/dashboard/leads" className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-white hover:bg-primary">Ver leads <ArrowRight size={15} /></Link><Link href="/dashboard/vehicles" className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-3 text-sm font-semibold hover:border-primary/30 hover:text-primary">Ver estoque <ArrowUpRight size={15} /></Link></div>
+      </section>
+      <section className="relative flex min-h-[305px] flex-col justify-between overflow-hidden rounded-[32px] bg-[#c70920] p-7 text-white sm:p-9">
+        <div className="absolute -right-28 -top-20 h-80 w-80 rounded-full border-[55px] border-white/[.07]" aria-hidden="true" />
+        <div className="relative"><div className="flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-[.14em] text-white/65">Oportunidades</span><MessageCircleMore size={21} className="text-white/70" /></div><p className="mt-8 text-[5.5rem] font-semibold leading-none tracking-[-.09em]">{data.leads.newThisMonth}</p><h2 className="mt-3 text-xl font-semibold">leads nos últimos 30 dias</h2><p className="mt-2 text-sm text-white/75">{openLeads} em andamento · {data.leads.total} no histórico</p></div>
+        <Link href="/dashboard/leads" className="relative mt-8 inline-flex items-center gap-1 text-sm font-semibold hover:underline">Acompanhar conversas <ArrowUpRight size={16} /></Link>
+      </section>
+    </div>
+
+    <div className="grid gap-5 sm:grid-cols-3">
+      {[
+        { label: 'Disponíveis', value: data.vehicles.available, detail: 'veículos prontos para venda', icon: CarFront },
+        { label: 'Reservados', value: data.vehicles.reserved, detail: 'aguardando conclusão', icon: CircleDot },
+        { label: 'Vendidos', value: data.vehicles.sold, detail: 'negócios concluídos', icon: TrendingUp },
+      ].map(({ label, value, detail, icon: Icon }) => <div key={label} className="rounded-[26px] border border-border bg-white p-6"><div className="flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">{label}</span><Icon size={18} className="text-primary" /></div><div className="mt-6 text-[3.3rem] font-semibold leading-none tracking-[-.07em]">{value}</div><p className="mt-2 text-xs text-muted-foreground">{detail}</p></div>)}
+    </div>
+
+    <div className="grid gap-5 lg:grid-cols-[1.15fr_1fr]">
+      <section className="rounded-[28px] border border-border bg-white p-6 sm:p-7"><div className="mb-5 flex items-center justify-between"><div><p className="page-eyebrow mb-1">Relacionamento</p><h2 className="text-xl font-semibold tracking-tight">Leads recentes</h2></div><Link href="/dashboard/leads" className="text-sm font-semibold text-primary">Ver todos <ArrowUpRight size={14} className="inline" /></Link></div><div className="divide-y divide-border">{data.recentLeads.length === 0 ? <p className="py-8 text-sm text-muted-foreground">Ainda não há leads.</p> : data.recentLeads.map((lead) => <Link href={`/dashboard/leads/${lead.id}`} key={lead.id} className="flex items-center gap-3 py-4 hover:text-primary"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-accent text-sm font-bold text-primary">{lead.name.charAt(0).toUpperCase()}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{lead.name}</span><span className="text-xs text-muted-foreground">{formatRelativeDate(lead.createdAt)}</span></span><span className="rounded-full bg-muted px-3 py-1 text-[11px] font-medium text-foreground">{lead.status?.name ?? 'Novo'}</span></Link>)}</div></section>
+      <section className="rounded-[28px] border border-border bg-white p-6 sm:p-7"><div className="mb-5"><p className="page-eyebrow mb-1">Movimento</p><h2 className="text-xl font-semibold tracking-tight">Funil de leads</h2></div><div className="space-y-5">{data.leads.byStatus.map((status) => <div key={status.id}><div className="mb-2 flex justify-between text-sm"><span className="text-muted-foreground">{status.name}</span><strong className="font-semibold">{status.count}</strong></div><div className="h-2 rounded-full bg-[#f1f1f3]"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(status.count ? 7 : 0, status.count / maxStage * 100)}%` }} /></div></div>)}</div></section>
+    </div>
+
+    <section className="rounded-[28px] border border-border bg-white p-6 sm:p-7"><div className="mb-5 flex items-center justify-between"><div><p className="page-eyebrow mb-1">Estoque</p><h2 className="text-xl font-semibold tracking-tight">Veículos mais vistos</h2></div><Link href="/dashboard/vehicles" className="text-sm font-semibold text-primary">Abrir estoque <ArrowUpRight size={14} className="inline" /></Link></div>{data.topViewedVehicles.length === 0 ? <p className="py-8 text-sm text-muted-foreground">As visitas aos veículos vão aparecer aqui.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.topViewedVehicles.map((vehicle) => <div key={vehicle.id} className="flex items-center gap-4 rounded-2xl bg-[#f7f7f9] p-3"><span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-accent text-primary">{vehicle.images?.[0] ? <img src={`${process.env.NEXT_PUBLIC_API_URL}${vehicle.images[0].imageUrl}`} alt="" className="h-full w-full object-cover" /> : <CarFront size={23} />}</span><div className="min-w-0"><p className="truncate text-sm font-semibold">{vehicle.model.brand.name} {vehicle.model.name}</p><p className="text-xs text-muted-foreground">{formatCurrency(vehicle.price)} · {vehicle.viewCount} visitas</p></div></div>)}</div>}</section>
+  </div>
 }

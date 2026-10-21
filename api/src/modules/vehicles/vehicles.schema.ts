@@ -22,10 +22,19 @@ export const createVehicleSchema = z.object({
   color: optionalText,
   description: optionalText,
   featureIds: z.array(z.string()).default([]),
+  status: z.enum(['available', 'reserved', 'sold']).default('available'),
 })
 
+// Na edição, selecionar "Não informado" deve limpar a relação já salva.
+const clearableId = z.preprocess(
+  (v) => (v === '' ? null : v),
+  z.string().min(1).nullable().optional(),
+)
+
 export const updateVehicleSchema = createVehicleSchema.partial().extend({
-  status: z.string().optional(),
+  categoryId: clearableId,
+  fuelId: clearableId,
+  transmissionId: clearableId,
 })
 
 export const vehicleFiltersSchema = z.object({

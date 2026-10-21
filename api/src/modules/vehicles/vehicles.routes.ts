@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { vehiclesService } from './vehicles.service'
 import { createVehicleSchema, updateVehicleSchema, vehicleFiltersSchema } from './vehicles.schema'
-import { authMiddleware } from '../../shared/middlewares/auth.middleware'
+import { authMiddleware, requireRole } from '../../shared/middlewares/auth.middleware'
 import { AppError } from '../../shared/errors/app-error'
 import { uploadsService } from '../uploads/uploads.service'
 
@@ -33,14 +33,14 @@ export async function vehiclesRoutes(app: FastifyInstance) {
     })
 
     // POST /vehicles
-    privateApp.post('/', async (request, reply) => {
+    privateApp.post('/', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
       const body = createVehicleSchema.parse(request.body)
       const vehicle = await vehiclesService.create(request.user.companyId, body)
       return reply.status(201).send(vehicle)
     })
 
     // PUT /vehicles/:id
-    privateApp.put('/:id', async (request, reply) => {
+    privateApp.put('/:id', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
       const { id } = request.params as { id: string }
       const body = updateVehicleSchema.parse(request.body)
       const vehicle = await vehiclesService.update(request.user.companyId, id, body)
@@ -48,14 +48,14 @@ export async function vehiclesRoutes(app: FastifyInstance) {
     })
 
     // DELETE /vehicles/:id
-    privateApp.delete('/:id', async (request, reply) => {
+    privateApp.delete('/:id', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
       const { id } = request.params as { id: string }
       await vehiclesService.delete(request.user.companyId, id)
       return reply.status(204).send()
     })
 
     // POST /vehicles/:id/images
-    privateApp.post('/:id/images', async (request, reply) => {
+    privateApp.post('/:id/images', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
       const { id } = request.params as { id: string }
       const files = request.files()
       const urls: string[] = []
@@ -71,14 +71,14 @@ export async function vehiclesRoutes(app: FastifyInstance) {
     })
 
     // DELETE /vehicles/:id/images/:imageId
-    privateApp.delete('/:id/images/:imageId', async (request, reply) => {
+    privateApp.delete('/:id/images/:imageId', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
       const { id, imageId } = request.params as { id: string; imageId: string }
       await vehiclesService.deleteImage(request.user.companyId, id, imageId)
       return reply.status(204).send()
     })
 
     // PATCH /vehicles/:id/cover
-    privateApp.patch('/:id/cover', async (request, reply) => {
+    privateApp.patch('/:id/cover', { onRequest: [requireRole('OWNER')] }, async (request, reply) => {
       const { id } = request.params as { id: string }
       const { imageId } = request.body as { imageId: string }
       if (!imageId) throw new AppError('imageId is required')

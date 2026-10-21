@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
-import { Geist } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 import { Providers } from '@/components/providers'
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
+const geist = localFont({ src: './fonts/geist-latin.woff2', variable: '--font-geist', weight: '100 900' })
 
 export const metadata: Metadata = {
   title: { default: 'Cartalog', template: '%s | Cartalog' },

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { MessageCircle, Send, CheckCircle2 } from 'lucide-react'
+import { Send, CheckCircle2 } from 'lucide-react'
 import { submitLead } from '@/services/catalog.service'
 
 export function LeadForm({ slug, vehicleId, vehicleTitle }: { slug: string; vehicleId: string; vehicleTitle: string }) {
@@ -31,7 +31,7 @@ export function LeadForm({ slug, vehicleId, vehicleTitle }: { slug: string; vehi
 
   if (sent) {
     return (
-      <div className="bg-card rounded-2xl border border-border p-6 text-center">
+      <div className="rounded-[28px] border border-border bg-white p-8 text-center">
         <CheckCircle2 size={48} className="text-success mx-auto mb-3" />
         <h3 className="font-bold text-foreground text-lg">Mensagem enviada!</h3>
         <p className="text-muted-foreground text-sm mt-2">Entraremos em contato em breve.</p>
@@ -40,36 +40,29 @@ export function LeadForm({ slug, vehicleId, vehicleTitle }: { slug: string; vehi
   }
 
   return (
-    <div className="bg-card rounded-2xl border border-border p-6">
-      <h3 className="font-bold text-foreground text-lg mb-1">Tenho interesse</h3>
-      <p className="text-sm text-muted-foreground mb-5">Deixe seus dados e entraremos em contato</p>
+    <div className="rounded-[28px] border border-border bg-white p-6 shadow-[0_14px_40px_rgba(20,20,25,.04)] sm:p-7">
+      <p className="page-eyebrow mb-2">Vamos conversar?</p><h3 className="font-semibold tracking-tight text-foreground text-xl mb-2">Gostou deste veículo?</h3>
+      <p className="text-sm leading-6 text-muted-foreground mb-6">Deixe seus dados e um vendedor vai entrar em contato.</p>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <input type="text" placeholder="Seu nome *" required value={form.name} onChange={set('name')}
-          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors" />
+          className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors" />
         <input type="tel" placeholder="WhatsApp / Telefone *" required value={form.phone} onChange={set('phone')}
-          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors" />
+          className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors" />
         <input type="email" placeholder="Email" value={form.email} onChange={set('email')}
-          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors" />
+          className="w-full h-11 px-4 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors" />
         <textarea placeholder="Mensagem (opcional)" value={form.message} onChange={set('message')} rows={3}
-          className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors resize-none" />
+          className="w-full px-4 py-3 rounded-xl border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors resize-none" />
 
         {error && <p className="text-xs text-destructive">{error}</p>}
 
         <button type="submit" disabled={loading}
-          className="w-full h-11 bg-gradient-primary text-white font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2 text-sm">
+          className="w-full h-11 bg-primary hover:bg-primary-dark text-white font-semibold rounded-full disabled:opacity-50 transition-colors flex items-center justify-center gap-2 text-sm">
           {loading ? 'Enviando...' : <><Send size={16} /> Enviar mensagem</>}
         </button>
       </form>
 
-      <div className="mt-4 pt-4 border-t border-border space-y-2">
-        <p className="text-xs text-muted-foreground text-center">Ou fale direto conosco</p>
-        <a href={`https://wa.me/?text=${encodeURIComponent(`Olá! Vi o ${vehicleTitle} no catálogo e tenho interesse.`)}`}
-          target="_blank" rel="noopener noreferrer"
-          className="w-full h-10 bg-green-500 hover:bg-green-600 text-white font-medium rounded-xl flex items-center justify-center gap-2 text-sm transition-colors hover:no-underline">
-          <MessageCircle size={16} /> WhatsApp
-        </a>
-      </div>
+      <p className="mt-5 border-t border-border pt-4 text-center text-xs text-muted-foreground">Seu contato será usado para falar sobre {vehicleTitle}.</p>
     </div>
   )
 }

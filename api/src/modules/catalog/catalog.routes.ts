@@ -8,6 +8,20 @@ import { AppError } from '../../shared/errors/app-error'
 export async function catalogRoutes(app: FastifyInstance) {
   app.addHook('onRequest', tenantMiddleware)
 
+  app.get('/status', async (request) => ({
+    name: request.tenant.name,
+    logoUrl: request.tenant.logoUrl,
+    maintenanceEnabled: request.tenant.siteSettings?.maintenanceEnabled ?? false,
+    maintenanceMessage: request.tenant.siteSettings?.maintenanceMessage ?? null,
+  }))
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (request.url.split('?')[0] === '/api/v1/catalog/status') return
+    if (request.tenant.siteSettings?.maintenanceEnabled) {
+      return reply.status(503).header('Retry-After', '3600').header('X-Robots-Tag', 'noindex').send({ code: 'SITE_MAINTENANCE', message: request.tenant.siteSettings.maintenanceMessage || 'Este site está temporariamente em manutenção.' })
+    }
+  })
+
   // GET /catalog — homepage do catálogo (empresa identificada pelo subdomínio)
   app.get('/', async (request) => {
     const company = request.tenant
@@ -27,6 +41,7 @@ export async function catalogRoutes(app: FastifyInstance) {
       prisma.page.findMany({
         where: { companyId: company.id, isPublished: true },
         select: { id: true, title: true, slug: true },
+        orderBy: { title: 'asc' },
       }),
     ])
 
@@ -40,6 +55,8 @@ export async function catalogRoutes(app: FastifyInstance) {
         secondaryColor: company.secondaryColor,
         whatsapp: company.whatsapp,
         phone: company.phone,
+        email: company.email,
+        companyLocations: company.companyLocations.map(({ address, city, state }) => ({ address, city, state })),
         siteSettings: company.siteSettings,
         seoSettings: company.seoSettings,
         banners,
@@ -61,7 +78,9 @@ export async function catalogRoutes(app: FastifyInstance) {
   // GET /catalog/vehicles/:vehicleSlug
   app.get('/vehicles/:vehicleSlug', async (request) => {
     const { vehicleSlug } = request.params as { vehicleSlug: string }
-    return vehiclesService.findBySlug(request.tenant.id, vehicleSlug)
+    const vehicle = await vehiclesService.findBySlug(request.tenant.id, vehicleSlug)
+    if (vehicle.status !== 'available') throw new AppError('Vehicle not found', 404)
+    return vehicle
   })
 
   // GET /catalog/pages/:pageSlug

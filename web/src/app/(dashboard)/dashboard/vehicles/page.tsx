@@ -1,27 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, Car, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { ArrowUpRight, CarFront, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { vehiclesService } from '@/services/vehicles.service'
 import { formatCurrency, formatMileage } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { VehicleStatusBadge } from '@/components/ui/badge'
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogDescription, DialogFooter,
-} from '@/components/ui/dialog'
-import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-} from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PaginatedResponse, Vehicle } from '@/types'
-
-function vehicleTitle(v: Vehicle) {
-  return `${v.model.brand.name} ${v.model.name} ${v.year}`
-}
 
 export default function VehiclesPage() {
   const router = useRouter()
@@ -29,185 +18,22 @@ export default function VehiclesPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const { data, isLoading, isError } = useQuery<PaginatedResponse<Vehicle>>({ queryKey: ['vehicles', { search, page }], queryFn: () => vehiclesService.list({ search: search || undefined, page }).then((r) => r.data) })
+  const deleteMutation = useMutation({ mutationFn: (id: string) => vehiclesService.delete(id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['vehicles'] }); setDeleteId(null); setDeleteError('') }, onError: (err: unknown) => setDeleteError((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Não foi possível excluir o veículo.') })
 
-  const { data, isLoading } = useQuery<PaginatedResponse<Vehicle>>({
-    queryKey: ['vehicles', { search, page }],
-    queryFn: () => vehiclesService.list({ search: search || undefined, page }).then((r) => r.data),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => vehiclesService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vehicles'] })
-      setDeleteId(null)
-    },
-  })
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Veículos</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{data?.meta.total ?? 0} veículos cadastrados</p>
-        </div>
-        <Button variant="gradient" onClick={() => router.push('/dashboard/vehicles/new')}>
-          <Plus size={17} />
-          Novo Veículo
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Buscar por marca, modelo..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          className="w-full pl-9 pr-4 h-10 rounded-lg border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary transition-colors"
-        />
-      </div>
-
-      {/* Table */}
-      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-6 space-y-3">
-            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
-          </div>
-        ) : !data?.data.length ? (
-          <div className="p-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-muted mx-auto flex items-center justify-center mb-4">
-              <Car size={28} className="text-muted-foreground" />
-            </div>
-            <p className="font-medium text-foreground mb-1">Nenhum veículo cadastrado</p>
-            <p className="text-sm text-muted-foreground mb-4">Adicione seu primeiro veículo ao catálogo</p>
-            <Button variant="gradient" onClick={() => router.push('/dashboard/vehicles/new')}>
-              <Plus size={16} />
-              Cadastrar veículo
-            </Button>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Veículo</TableHead>
-                <TableHead>Ano / Km</TableHead>
-                <TableHead>Preço</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.data.map((v) => {
-                const title = vehicleTitle(v)
-                const coverImage = v.images?.[0]?.imageUrl
-                return (
-                  <TableRow key={v.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-gradient-primary flex-shrink-0 flex items-center justify-center overflow-hidden">
-                          {coverImage ? (
-                            <img
-                              src={`${process.env.NEXT_PUBLIC_API_URL}${coverImage}`}
-                              alt={title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Car className="text-white" size={18} />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {v.color && `${v.color} • `}
-                            {v.fuel?.name ?? ''}
-                            {v.transmission ? ` • ${v.transmission.name}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {v.year} · {formatMileage(v.mileage)}
-                    </TableCell>
-                    <TableCell className="font-semibold text-foreground">
-                      {formatCurrency(v.price)}
-                    </TableCell>
-                    <TableCell>
-                      <VehicleStatusBadge status={v.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1.5">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => router.push(`/dashboard/vehicles/${v.id}`)}
-                          title="Editar"
-                        >
-                          <Pencil size={15} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setDeleteId(v.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 size={15} />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        )}
-
-        {/* Pagination */}
-        {data && data.meta.lastPage > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/30">
-            <p className="text-sm text-muted-foreground">
-              Página {data.meta.page} de {data.meta.lastPage}
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                Anterior
-              </Button>
-              <Button variant="outline" size="sm" disabled={page === data.meta.lastPage} onClick={() => setPage((p) => p + 1)}>
-                Próxima
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Delete Dialog */}
-      <Dialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null) }}>
-        <DialogContent>
-          <DialogHeader>
-            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center mb-2">
-              <AlertCircle className="text-destructive" size={20} />
-            </div>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir este veículo? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              loading={deleteMutation.isPending}
-              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
-            >
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
+  return <div className="space-y-8">
+    <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="page-eyebrow mb-2">Catálogo da loja</p><h1 className="text-[clamp(2rem,4vw,3.2rem)] font-semibold tracking-[-.055em] leading-[1.08]">Seu estoque, em destaque.</h1><p className="mt-3 text-muted-foreground">Organize os carros que seus clientes vão encontrar.</p></div><Button onClick={() => router.push('/dashboard/vehicles/new')} className="h-11 px-5"><Plus size={17} /> Novo veículo</Button></div>
+    <div className="grid gap-5 md:grid-cols-[1.4fr_1fr]"><div className="relative overflow-hidden rounded-[30px] bg-[#1d1d1f] p-7 text-white sm:p-8"><div className="absolute -right-20 -top-24 h-64 w-64 rounded-full border-[45px] border-white/[.05]" aria-hidden="true" /><p className="relative text-xs font-semibold uppercase tracking-[.14em] text-white/55">Inventário</p><p className="relative mt-5 text-6xl font-semibold tracking-[-.075em]">{data?.meta.total ?? 0}</p><p className="relative mt-2 text-sm text-white/70">veículos cadastrados na loja</p><p className="relative mt-7 max-w-sm text-sm leading-6 text-white/55">Um catálogo atualizado ajuda o vendedor a transformar interesse em conversa.</p></div><div className="flex flex-col justify-between rounded-[30px] border border-border bg-white p-7 sm:p-8"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent text-primary"><CarFront size={22} /></span><div><h2 className="mt-6 text-xl font-semibold tracking-tight">Um carro novo para mostrar?</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Cadastre os dados, fotos e opcionais para publicar no catálogo.</p><button onClick={() => router.push('/dashboard/vehicles/new')} className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary">Começar cadastro <ArrowUpRight size={16} /></button></div></div></div>
+    <section className="space-y-5"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="page-eyebrow mb-1">Explorar</p><h2 className="text-2xl font-semibold tracking-[-.035em]">Veículos cadastrados</h2></div><div className="relative w-full sm:w-72"><Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" /><input aria-label="Buscar veículos" placeholder="Buscar marca ou modelo" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} className="h-11 w-full rounded-full border border-input bg-white pl-11 pr-4 text-sm outline-none focus:border-primary" /></div></div>
+      {isError && <p role="alert" className="rounded-2xl bg-destructive/10 p-4 text-sm text-destructive">Não foi possível carregar os veículos.</p>}
+      {isLoading ? <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-80 rounded-[28px]" />)}</div> : !data?.data.length ? <div className="rounded-[30px] border border-border bg-white px-7 py-20 text-center"><span className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-accent text-primary"><CarFront size={28} /></span><h3 className="text-lg font-semibold">{search ? 'Nenhum resultado' : 'Comece pelo primeiro veículo'}</h3><p className="mt-2 text-sm text-muted-foreground">{search ? 'Tente buscar por outra marca ou modelo.' : 'Cadastre seu estoque para montar o catálogo da loja.'}</p>{!search && <Button className="mt-6" onClick={() => router.push('/dashboard/vehicles/new')}><Plus size={16} /> Cadastrar veículo</Button>}</div> : <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{data.data.map((vehicle) => {
+        const title = `${vehicle.model.brand.name} ${vehicle.model.name} ${vehicle.year}`
+        const cover = vehicle.images?.[0]?.imageUrl
+        return <article key={vehicle.id} className="group overflow-hidden rounded-[28px] border border-border bg-white transition-all hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(20,20,25,.08)]"><div className="relative aspect-[16/10] overflow-hidden bg-[#f0f0f3]">{cover ? <img src={`${process.env.NEXT_PUBLIC_API_URL}${cover}`} alt={title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_50%_30%,#fff0f1,#f4f4f6)]"><CarFront size={58} strokeWidth={1.2} className="text-primary/35" /></div>}<span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-foreground backdrop-blur">{vehicle.model.brand.name}</span></div><div className="p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-lg font-semibold tracking-tight">{vehicle.model.name}</h3><p className="mt-1 text-xs text-muted-foreground">{vehicle.year} · {formatMileage(vehicle.mileage)}</p></div><VehicleStatusBadge status={vehicle.status} /></div><p className="mt-5 text-2xl font-semibold tracking-[-.04em]">{formatCurrency(vehicle.price)}</p><div className="mt-5 flex items-center justify-between border-t border-border pt-4"><span className="truncate text-xs text-muted-foreground">{[vehicle.color, vehicle.fuel?.name, vehicle.transmission?.name].filter(Boolean).join(' · ') || 'Sem detalhes adicionais'}</span><div className="flex shrink-0 gap-1"><button onClick={() => router.push(`/dashboard/vehicles/${vehicle.id}`)} aria-label={`Editar ${title}`} title="Editar" className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent hover:text-primary"><Pencil size={16} /></button><button onClick={() => setDeleteId(vehicle.id)} aria-label={`Excluir ${title}`} title="Excluir" className="grid h-9 w-9 place-items-center rounded-full hover:bg-destructive/10 hover:text-destructive"><Trash2 size={16} /></button></div></div></div></article>
+      })}</div>}
+      {data && data.meta.lastPage > 1 && <div className="flex items-center justify-center gap-4 pt-3"><Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Anterior</Button><span className="text-sm text-muted-foreground">Página {page} de {data.meta.lastPage}</span><Button variant="outline" size="sm" disabled={page === data.meta.lastPage} onClick={() => setPage((p) => p + 1)}>Próxima</Button></div>}
+    </section>
+    <Dialog open={!!deleteId} onOpenChange={(open) => { if (!open) { setDeleteId(null); setDeleteError('') } }}><DialogContent><DialogHeader><DialogTitle>Excluir veículo?</DialogTitle><DialogDescription>Esta ação remove o veículo do catálogo. Veículos com leads vinculados não podem ser excluídos.</DialogDescription></DialogHeader>{deleteError && <p role="alert" className="text-sm text-destructive">{deleteError}</p>}<DialogFooter><Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button><Button variant="destructive" loading={deleteMutation.isPending} onClick={() => deleteId && deleteMutation.mutate(deleteId)}>Excluir veículo</Button></DialogFooter></DialogContent></Dialog>
+  </div>
 }

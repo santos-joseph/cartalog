@@ -4,8 +4,15 @@ function catalogFetch(path: string, slug: string, init?: RequestInit) {
   return fetch(`${API}/api/v1${path}`, {
     ...init,
     headers: { 'X-Tenant-Slug': slug, ...(init?.headers ?? {}) },
-    next: { revalidate: 60 },
+    cache: 'no-store',
   })
+}
+
+export async function getCatalogStatus(slug: string): Promise<{ name: string; logoUrl: string | null; maintenanceEnabled: boolean; maintenanceMessage: string | null } | null> {
+  try {
+    const response = await catalogFetch('/catalog/status', slug)
+    return response.ok ? response.json() : null
+  } catch { return null }
 }
 
 export async function getCatalog(slug: string) {
@@ -23,6 +30,12 @@ export async function getCatalogVehicles(slug: string, params?: Record<string, s
 
 export async function getCatalogVehicle(slug: string, vehicleSlug: string) {
   const r = await catalogFetch(`/catalog/vehicles/${vehicleSlug}`, slug)
+  if (!r.ok) return null
+  return r.json()
+}
+
+export async function getCatalogPage(slug: string, pageSlug: string) {
+  const r = await catalogFetch(`/catalog/pages/${encodeURIComponent(pageSlug)}`, slug)
   if (!r.ok) return null
   return r.json()
 }

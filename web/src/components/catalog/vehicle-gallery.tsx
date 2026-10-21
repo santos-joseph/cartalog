@@ -14,8 +14,8 @@ export function VehicleGallery({ images, apiUrl, title }: { images: Image[]; api
 
   if (sorted.length === 0) {
     return (
-      <div className="aspect-[16/9] rounded-2xl bg-muted flex items-center justify-center">
-        <Car size={64} className="text-muted-foreground/30" />
+      <div className="aspect-[16/10] rounded-[30px] catalog-placeholder flex items-center justify-center">
+        <Car size={64} className="text-primary/30" />
       </div>
     )
   }
@@ -23,7 +23,7 @@ export function VehicleGallery({ images, apiUrl, title }: { images: Image[]; api
   return (
     <div className="space-y-3">
       {/* Main image */}
-      <div className="aspect-[16/9] rounded-2xl overflow-hidden relative bg-muted group">
+      <div className="aspect-[16/10] rounded-[30px] overflow-hidden relative bg-muted group">
         <img
           src={`${apiUrl}${sorted[active].imageUrl}`}
           alt={title}

@@ -1,327 +1,62 @@
 'use client'
 
-import { Suspense, useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowRight, Car, BarChart3, Palette, Loader2 } from 'lucide-react'
+import { ArrowRight, CarFront, Check, Loader2, MessageCircleMore } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth.store'
+import { useQueryClient } from '@tanstack/react-query'
 import { authService } from '@/services/auth.service'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 
-type Tab = 'login' | 'register'
-
-// ── Side panel (stays fixed) ────────────────────────────────────────────────
-const features = [
-  { icon: Car, title: 'Catálogo digital', description: 'Seu estoque online com site próprio' },
-  { icon: BarChart3, title: 'Leads e CRM', description: 'Gerencie contatos em tempo real' },
-  { icon: Palette, title: 'Personalizável', description: 'Cores, logo e configurações da loja' },
-]
-
-function BrandPanel() {
-  return (
-    <div className="hidden lg:flex lg:w-[44%] bg-gradient-primary flex-col justify-between p-12 relative overflow-hidden flex-shrink-0">
-      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/5" />
-      <div className="absolute -bottom-24 -left-12 w-72 h-72 rounded-full bg-white/5" />
-
-      <div className="relative">
-        <Link href="/" className="flex items-center gap-3 mb-1 hover:no-underline">
-          <img src="/brand/cartalog-logo-white.png" alt="Cartalog" className="h-14 w-auto object-contain" />
-        </Link>
-        <p className="text-white/65 text-sm mt-2">Gerenciador de catálogo de veículos</p>
-      </div>
-
-      <div className="relative space-y-7">
-        {features.map(({ icon: Icon, title, description }) => (
-          <div key={title} className="flex gap-4 items-start">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
-              <Icon className="text-white" size={18} />
-            </div>
-            <div>
-              <h3 className="text-white font-semibold text-sm">{title}</h3>
-              <p className="text-white/60 text-xs mt-0.5">{description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <p className="relative text-white/40 text-xs">© 2025 Cartalog. Todos os direitos reservados.</p>
-    </div>
-  )
-}
-
-// ── Tab toggle ───────────────────────────────────────────────────────────────
-function TabToggle({ tab, onTabChange }: { tab: Tab; onTabChange: (t: Tab) => void }) {
-  return (
-    <div className="flex bg-muted rounded-xl p-1 mb-8">
-      {(['login', 'register'] as Tab[]).map((t) => (
-        <button
-          key={t}
-          onClick={() => onTabChange(t)}
-          className={cn(
-            'flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200',
-            tab === t
-              ? 'bg-white text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          {t === 'login' ? 'Entrar' : 'Criar conta'}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-// ── Login form ───────────────────────────────────────────────────────────────
-function LoginForm({ onSuccess }: { onSuccess: () => void }) {
+export default function LoginPage() {
+  const router = useRouter()
+  const qc = useQueryClient()
   const setAuth = useAuthStore((s) => s.setAuth)
   const [form, setForm] = useState({ companySlug: '', email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  function set(f: keyof typeof form) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => setForm((p) => ({ ...p, [f]: e.target.value }))
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     setError('')
     setLoading(true)
     try {
       const { data } = await authService.login(form)
+      qc.clear()
       setAuth(data)
-      onSuccess()
+      router.replace(data.user.role === 'SELLER' ? '/dashboard/leads' : '/dashboard')
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setError(msg ?? 'Email ou senha inválidos')
+      const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      setError(message ?? 'Não foi possível entrar. Confira os dados informados.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Slug da Empresa"
-        type="text"
-        placeholder="ex: demo-motors"
-        value={form.companySlug}
-        onChange={set('companySlug')}
-        helper="Encontrado na URL do seu catálogo"
-        required
-      />
-      <Input
-        label="Email"
-        type="email"
-        placeholder="seu@email.com"
-        value={form.email}
-        onChange={set('email')}
-        required
-      />
-      <Input
-        label="Senha"
-        type="password"
-        placeholder="••••••••"
-        value={form.password}
-        onChange={set('password')}
-        required
-      />
-
-      {error && (
-        <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full inline-flex items-center justify-center gap-2 bg-gradient-primary text-white font-semibold h-11 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity text-sm mt-1"
-      >
-        {loading ? <Loader2 size={17} className="animate-spin" /> : (
-          <>Entrar <ArrowRight size={16} /></>
-        )}
-      </button>
-
-      <div className="pt-4 border-t border-border">
-        <p className="text-xs text-muted-foreground mb-3 font-medium">Credenciais de teste</p>
-        <div className="bg-accent rounded-xl p-3 space-y-1.5">
-          {[
-            { label: 'Slug', value: 'staging' },
-            { label: 'Email', value: 'teste@tst.com' },
-            { label: 'Senha', value: 'Joseph@2' },
-          ].map(({ label, value }) => (
-            <p key={label} className="text-xs text-foreground">
-              <span className="text-muted-foreground">{label}:</span>{' '}
-              <code className="bg-white px-1.5 py-0.5 rounded text-primary font-mono text-xs">{value}</code>
-            </p>
-          ))}
+    <main className="min-h-screen bg-[radial-gradient(ellipse_at_20%_0%,#fff0f1,#fbfbfd_50%)] px-4 py-5 sm:px-7">
+      <header className="mx-auto flex max-w-[1180px] items-center justify-between rounded-full border border-border bg-white/85 px-5 py-3 shadow-sm backdrop-blur-xl"><Link href="/"><img src="/brand/cartalog-logo.png" alt="Cartalog" className="h-9 w-auto" /></Link><span className="text-xs font-medium text-muted-foreground">Acesso à loja</span></header>
+      <div className="mx-auto grid max-w-[1180px] gap-8 py-10 lg:min-h-[calc(100vh-130px)] lg:grid-cols-[1fr_460px] lg:items-center lg:gap-16">
+        <div className="relative hidden lg:block"><span className="inline-flex rounded-full border border-primary/10 bg-white px-4 py-2 text-xs font-semibold text-primary">Sua operação, mais simples</span><h1 className="mt-8 max-w-xl text-[clamp(3.5rem,5.2vw,5.8rem)] font-semibold leading-[1.04] tracking-[-.065em]">Mais clareza para <span className="text-primary">vender melhor.</span></h1><p className="mt-6 max-w-md text-lg leading-7 text-muted-foreground">Do primeiro interesse à próxima venda, tudo fica no mesmo lugar.</p><div className="mt-12 grid max-w-lg grid-cols-2 gap-4"><div className="rounded-[26px] border border-border bg-white p-6 shadow-sm"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent text-primary"><CarFront size={22} /></span><h2 className="mt-7 text-lg font-semibold">Estoque organizado</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">Carros, imagens e detalhes prontos para mostrar.</p></div><div className="rounded-[26px] bg-[#1d1d1f] p-6 text-white"><span className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10"><MessageCircleMore size={22} /></span><h2 className="mt-7 text-lg font-semibold">Leads em movimento</h2><p className="mt-2 text-sm leading-6 text-white/60">Cada conversa com responsável e próximo passo.</p></div></div></div>
+        <div className="rounded-[32px] border border-border bg-white p-6 shadow-[0_24px_80px_rgba(20,20,25,.07)] sm:p-10">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white"><img src="/brand/cartalog-mark.png" alt="" className="h-12 w-12 rounded-2xl" /></span>
+        <p className="page-eyebrow mb-3 mt-8">Bem-vindo de volta</p>
+        <h2 className="text-[2.2rem] leading-tight font-semibold tracking-[-.045em] text-foreground">Entre na sua loja.</h2>
+        <p className="text-sm text-muted-foreground mt-3 mb-8">Acesse seus veículos e continue cada conversa.</p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Input label="Slug da empresa" value={form.companySlug} onChange={(e) => setForm((f) => ({ ...f, companySlug: e.target.value }))} placeholder="ex: demo-motors" required />
+          <Input label="Email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
+          <Input label="Senha" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
+          {error && <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark transition-colors text-white font-semibold h-12 rounded-full disabled:opacity-50 mt-2">
+            {loading ? <Loader2 size={17} className="animate-spin" /> : <>Entrar <ArrowRight size={16} /></>}
+          </button>
+        </form>
+        <div className="mt-7 flex items-start gap-2 rounded-2xl bg-[#f7f7f9] p-4"><Check size={16} className="mt-0.5 shrink-0 text-primary" /><p className="text-xs leading-relaxed text-muted-foreground">O cadastro da empresa e dos vendedores é feito pelo aplicativo desktop.</p></div>
         </div>
       </div>
-    </form>
-  )
-}
-
-// ── Register form ────────────────────────────────────────────────────────────
-function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
-  const setAuth = useAuthStore((s) => s.setAuth)
-  const [form, setForm] = useState({
-    companyName: '', companyEmail: '', companyPhone: '',
-    userName: '', userEmail: '', password: '',
-  })
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  function set(f: keyof typeof form) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => setForm((p) => ({ ...p, [f]: e.target.value }))
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      const { data } = await authService.register(form)
-      setAuth(data)
-      onSuccess()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
-      setError(msg ?? 'Erro ao criar conta')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">Dados da empresa</p>
-
-      <Input label="Nome da empresa" placeholder="Ex: Auto Silva Motors" value={form.companyName} onChange={set('companyName')} required />
-
-      <div className="grid grid-cols-2 gap-3">
-        <Input label="Email da empresa" type="email" placeholder="contato@empresa.com" value={form.companyEmail} onChange={set('companyEmail')} required />
-        <Input label="Telefone" type="tel" placeholder="(11) 99999-9999" value={form.companyPhone} onChange={set('companyPhone')} />
-      </div>
-
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest pt-1">Seu acesso</p>
-
-      <Input label="Seu nome" placeholder="João Silva" value={form.userName} onChange={set('userName')} required />
-      <Input label="Seu email" type="email" placeholder="joao@empresa.com" value={form.userEmail} onChange={set('userEmail')} required />
-      <Input
-        label="Senha"
-        type="password"
-        placeholder="Min. 8 caracteres"
-        value={form.password}
-        onChange={set('password')}
-        helper="Mínimo 8 caracteres, 1 maiúscula e 1 número"
-        required
-      />
-
-      {error && (
-        <div className="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full inline-flex items-center justify-center gap-2 bg-gradient-primary text-white font-semibold h-11 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity text-sm mt-1"
-      >
-        {loading ? <Loader2 size={17} className="animate-spin" /> : (
-          <>Criar conta grátis <ArrowRight size={16} /></>
-        )}
-      </button>
-    </form>
-  )
-}
-
-// ── PAGE ─────────────────────────────────────────────────────────────────────
-function AuthContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [tab, setTab] = useState<Tab>('login')
-  const [animating, setAnimating] = useState(false)
-  const [displayTab, setDisplayTab] = useState<Tab>('login')
-
-  // Read ?tab=register from URL
-  useEffect(() => {
-    if (searchParams.get('tab') === 'register') {
-      setTab('register')
-      setDisplayTab('register')
-    }
-  }, [searchParams])
-
-  function switchTab(next: Tab) {
-    if (next === tab || animating) return
-    setAnimating(true)
-    setTab(next)
-    // Wait for exit animation, then swap content
-    setTimeout(() => {
-      setDisplayTab(next)
-      setAnimating(false)
-    }, 180)
-  }
-
-  function onSuccess() {
-    router.push('/dashboard')
-  }
-
-  const headings = {
-    login: { title: 'Bem-vindo de volta', sub: 'Entre na sua conta para acessar o painel' },
-    register: { title: 'Crie sua conta', sub: 'Configure sua loja de veículos em minutos' },
-  }
-
-  return (
-    <div className="min-h-screen flex bg-white">
-      <BrandPanel />
-
-      {/* Right — forms */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-white min-h-screen overflow-y-auto">
-        <div className="w-full max-w-sm py-8">
-          {/* Mobile logo */}
-          <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden hover:no-underline">
-            <img src="/brand/cartalog-logo.png" alt="Cartalog" className="h-10 w-auto object-contain" />
-          </Link>
-
-          {/* Tab toggle */}
-          <TabToggle tab={tab} onTabChange={switchTab} />
-
-          {/* Animated form container */}
-          <div className="relative overflow-hidden">
-            <div
-              className="transition-all duration-200 ease-in-out"
-              style={{
-                opacity: animating ? 0 : 1,
-                transform: animating
-                  ? `translateY(${tab === 'register' ? '-8px' : '8px'})`
-                  : 'translateY(0)',
-              }}
-            >
-              {/* Heading */}
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-foreground">{headings[displayTab].title}</h2>
-                <p className="text-muted-foreground text-sm mt-1">{headings[displayTab].sub}</p>
-              </div>
-
-              {/* Form */}
-              {displayTab === 'login' ? (
-                <LoginForm onSuccess={onSuccess} />
-              ) : (
-                <RegisterForm onSuccess={onSuccess} />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function AuthPage() {
-  return (
-    <Suspense>
-      <AuthContent />
-    </Suspense>
+      <p className="mx-auto max-w-[1180px] pb-4 text-xs text-muted-foreground">© {new Date().getFullYear()} Cartalog</p>
+    </main>
   )
 }

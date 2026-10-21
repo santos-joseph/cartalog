@@ -17,13 +17,19 @@ function extractSlug(host: string): string | null {
   return null
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = request.headers.get('host') || ''
   const slug = extractSlug(host)
   if (!slug) return NextResponse.next()
 
   const pathname = request.nextUrl.pathname
-  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon')) return NextResponse.next()
+  if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.startsWith('/brand/')) return NextResponse.next()
+
+  if (pathname === '/login' || pathname === '/register' || pathname.startsWith('/dashboard') || pathname.startsWith('/platform')) {
+    const url = request.nextUrl.clone()
+    url.hostname = BASE_DOMAIN
+    return NextResponse.redirect(url)
+  }
 
   // Se a URL ainda tem o slug no path (ex: staging.dominio.com/staging/veiculos),
   // redireciona para a URL limpa (staging.dominio.com/veiculos)

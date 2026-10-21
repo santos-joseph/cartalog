@@ -1,0 +1,64 @@
+{
+  "name": "@cartalog/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Aplicativo desktop do dono da loja Cartalog",
+  "author": "Joseph Santos",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && cross-env CARTALOG_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "tsc --noEmit && vite build",
+    "icon": "node scripts/build-icon.mjs",
+    "start": "electron .",
+    "smoke": "cross-env CARTALOG_SMOKE=1 electron .",
+    "package:win": "npm run icon && node scripts/build-installer-artwork.mjs && npm run build && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^44.8.0",
+    "electron-builder": "^26.15.3",
+    "png-to-ico": "^3.0.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.4",
+    "wait-on": "^9.0.3"
+  },
+  "build": {
+    "appId": "com.cartalog.desktop",
+    "productName": "Cartalog Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "assets/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/cartalog.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "assets/cartalog.ico",
+      "uninstallerIcon": "assets/cartalog.ico",
+      "installerSidebar": "assets/installer-sidebar.bmp",
+      "uninstallerSidebar": "assets/installer-sidebar.bmp",
+      "installerLanguages": ["pt_BR"],
+      "language": "1046",
+      "artifactName": "Cartalog-Desktop-Setup-${version}.${ext}"
+    }
+  }
+}

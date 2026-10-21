@@ -2,7 +2,7 @@ export interface User {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'MANAGER' | 'SELLER'
+  role: 'OWNER' | 'SELLER'
 }
 
 export interface Company {
@@ -54,6 +54,7 @@ export interface LeadStatus {
   id: string
   name: string
   position: number | null
+  kind: 'open' | 'won' | 'lost'
 }
 
 export interface Lead {
@@ -96,7 +97,7 @@ export interface DashboardOverview {
   leads: {
     total: number
     newThisMonth: number
-    byStatus: { id: string; name: string; position: number | null; count: number }[]
+    byStatus: { id: string; name: string; kind: 'open' | 'won' | 'lost'; position: number | null; count: number }[]
   }
   topViewedVehicles: Array<{
     id: string
