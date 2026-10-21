@@ -39,9 +39,14 @@ export function PageHeading({ eyebrow, title, description, action }: { eyebrow: 
   return <header className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{action && <div className="heading-action">{action}</div>}</header>
 }
 
-export function Modal({ title, subtitle, children, onClose, footer }: { title: string; subtitle?: string; children: ReactNode; onClose: () => void; footer?: ReactNode }) {
+export function Modal({ title, subtitle, children, onClose, footer, className = '' }: { title: string; subtitle?: string; children: ReactNode; onClose: () => void; footer?: ReactNode; className?: string }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
   return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="modal" role="dialog" aria-modal="true" aria-label={title}>
+    <section className={`modal ${className}`} role="dialog" aria-modal="true" aria-label={title}>
       <header className="modal-header"><div><span className="eyebrow">CARTALOG DESKTOP</span><h2>{title}</h2>{subtitle && <p>{subtitle}</p>}</div><button type="button" className="icon-button" aria-label="Fechar" onClick={onClose}><X size={20} /></button></header>
       <div className="modal-body">{children}</div>{footer && <footer className="modal-footer">{footer}</footer>}
     </section>

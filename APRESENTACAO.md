@@ -25,7 +25,7 @@ Depois de criar o administrador global, entre pelo desktop ou por `http://localh
 
 | Destino | Arquivo/fluxo | O que instala |
 | --- | --- | --- |
-| Windows | `desktop/release/Cartalog-Desktop-Setup-0.1.2.exe` | Apenas o app desktop. Usa API local por padrão; para clientes reais, precisa da URL HTTPS da API central. O instalador atual não é assinado. |
+| Windows | `desktop/release/Cartalog-Desktop-Setup-0.1.3.exe` | Apenas o app desktop. Usa API local por padrão; para clientes reais, precisa da URL HTTPS da API central. O instalador atual não é assinado. |
 | macOS | `cd desktop && npm run package:mac` **no Mac** | Gera um `.dmg` em `desktop/release/`. O `.exe` do Windows não abre no Mac. Para distribuição pública no Mac, assinar e notarizar o app. |
 | Android | `mobile/release/Cartalog-Vendedor-1.0.0.apk` | APK já gerado para instalar no celular. Para gerar outro, execute `cd mobile && npm run build:apk` com a conta Expo autenticada. |
 
