@@ -33,7 +33,7 @@ function envForDemo() {
   if (!saved.DATABASE_URL) fail('Execute primeiro: node scripts/demo.mjs setup')
   return { ...process.env, ...saved, DATABASE_URL: saved.DATABASE_URL, NEXT_PUBLIC_API_URL: 'http://localhost:3333', NEXT_PUBLIC_BASE_DOMAIN: 'localhost' }
 }
-function docker(env, args) { run('docker', ['compose', '-f', 'compose.demo.yml', ...args], root, env) }
+function docker(env, args) { run('docker', ['compose', '-p', 'cartalog-presentation', '-f', 'compose.demo.yml', ...args], root, env) }
 function dependency(dir) {
   if (!existsSync(join(dir, 'node_modules'))) run(npm, ['ci'], dir)
 }
