@@ -13,7 +13,7 @@ node scripts/demo.mjs setup
 node scripts/demo.mjs start --desktop
 ```
 
-O primeiro comando instala dependências de API, web e desktop, cria o banco de demonstração no Docker, aplica **todas as migrações** e solicita nome, e-mail e senha do primeiro administrador global **somente se ele ainda não existir**. A senha é digitada no terminal e nunca é gravada no repositório. O segundo comando abre API (`http://localhost:3333`), web (`http://localhost:3000`) e desktop. Mantenha esse terminal aberto durante a apresentação. A configuração local gerada fica em `api/.env.demo` e é ignorada pelo Git.
+O primeiro comando instala dependências de API, web e desktop, cria o banco de demonstração no Docker, aplica **todas as migrações**, popula marcas/modelos/combustíveis/opcionais e solicita nome, e-mail e senha do primeiro administrador global **somente se ele ainda não existir**. Ele não cria uma loja nem um usuário com senha padrão. A senha é digitada no terminal e nunca é gravada no repositório. O segundo comando abre API (`http://localhost:3333`), web (`http://localhost:3000`) e desktop. Mantenha esse terminal aberto durante a apresentação. A configuração local gerada fica em `api/.env.demo` e é ignorada pelo Git.
 
 Se preferir usar PostgreSQL já instalado, configure `DATABASE_URL` no ambiente ou em `api/.env` e execute `node scripts/demo.mjs setup --existing-db`. Confirme que a URL aponta para um **banco de demonstração** antes de executar as migrações. O script nunca reseta o banco. Se uma configuração `.env.demo` anterior apontar para outro banco, ele interrompe a troca para evitar aplicar migrações no destino errado.
 

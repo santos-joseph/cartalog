@@ -67,6 +67,7 @@ async function setup() {
   dependency(desktop)
   run(npm, ['run', 'db:generate'], api, env)
   run(npm, ['run', 'db:migrate:prod'], api, env)
+  run(npm, ['run', 'db:seed', '--', '--reference-only'], api, env)
 
   const require = createRequire(join(api, 'package.json'))
   const { Pool } = require('pg')

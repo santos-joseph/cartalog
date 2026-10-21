@@ -65,6 +65,13 @@ async function main() {
   }
   console.log(`✅  ${features.length} features`)
 
+  // O setup de apresentação precisa do catálogo de referência, mas cria o
+  // primeiro administrador global por senha interativa e sem conta demo fixa.
+  if (process.argv.includes('--reference-only')) {
+    console.log('✅  Dados de referência concluídos (sem criar empresa ou usuário demo).')
+    return
+  }
+
   // ---- Demo Company ----
   const company = await prisma.company.upsert({
     where: { slug: 'demo-motors' },

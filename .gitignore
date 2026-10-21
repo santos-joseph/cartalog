@@ -10,6 +10,7 @@ dist/
 out/
 build/
 desktop/release/
+mobile/release/
 .mobile-git-backup/
 
 # Environment files - NEVER commit these
