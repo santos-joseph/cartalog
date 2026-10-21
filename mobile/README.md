@@ -33,6 +33,18 @@ No Expo Go pela rede local, o app detecta o IP do computador pelo servidor Expo 
 
 O vendedor precisa ter sido criado e estar ativo. A API identifica sua loja pelo e-mail da conta. O servidor aceita HTTP na rede local para desenvolvimento; use HTTPS para distribuição externa.
 
+## Gerar APK para instalar em um celular Android
+
+O perfil `preview` em `eas.json` produz APK de distribuição interna. É necessário fazer login em uma conta Expo, vincular o projeto na primeira execução e aceitar a configuração de assinatura Android:
+
+```bash
+cd mobile
+npx eas-cli@latest login
+npm run build:apk
+```
+
+Ao concluir, abra o link do build no Android para baixar e instalar. O APK é apenas o cliente do vendedor: a API deve estar acessível ao celular. Na tela de login, use **Configurar endereço da API** com `http://IP_DO_COMPUTADOR:3333` na mesma rede ou com a URL HTTPS do servidor. Consulte [APRESENTACAO.md](../APRESENTACAO.md).
+
 ## Verificações
 
 ```powershell

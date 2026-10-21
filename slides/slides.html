@@ -1,954 +1,145 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cartalog — TCC Apresentação</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --red: #C0182A;
-    --red-dark: #8B1020;
-    --red-light: #E8404F;
-    --red-muted: rgba(192,24,42,0.10);
-    --red-border: rgba(192,24,42,0.25);
-    --white: #FFFFFF;
-    --off-white: #F7F7F8;
-    --gray-50: #F9FAFB;
-    --gray-100: #F3F4F6;
-    --gray-200: #E5E7EB;
-    --gray-300: #D1D5DB;
-    --gray-400: #9CA3AF;
-    --gray-600: #4B5563;
-    --gray-700: #374151;
-    --gray-800: #1F2937;
-    --gray-900: #111827;
-    --font: 'Inter', sans-serif;
-    --slide-bg: #FFFFFF;
-    --card-bg: #F9FAFB;
-    --border: #E5E7EB;
-  }
-
-  html, body {
-    width: 100%; height: 100%; min-height: 100%;
-    font-family: var(--font);
-    background: #E5E7EB;
-    overflow: hidden;
-    user-select: none;
-  }
-
-  .deck {
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .slide {
-    position: absolute; inset: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100dvh;
-    min-height: 100vh;
-    min-height: 100dvh;
-    display: none; opacity: 0;
-    transition: opacity 0.35s ease;
-    background: var(--slide-bg);
-    overflow: hidden;
-  }
-  .slide.active { display: flex; opacity: 1; }
-  .slide.fade-in { animation: fadeIn 0.4s ease forwards; }
-  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-
-  /* ── NAV ── */
-  .nav {
-    position: fixed; bottom: clamp(12px, 3vh, 28px); left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; gap: 14px;
-    background: var(--white);
-    border: 1px solid var(--gray-200);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    border-radius: 999px;
-    padding: 8px 18px;
-    z-index: 100;
-  }
-  .nav button {
-    background: none; border: none; cursor: pointer;
-    color: var(--gray-400); font-size: 18px;
-    width: 30px; height: 30px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    transition: color 0.2s, background 0.2s;
-  }
-  .nav button:hover { color: var(--gray-800); background: var(--gray-100); }
-  .nav .counter { font-size: 12px; font-weight: 500; color: var(--gray-400); min-width: 48px; text-align: center; letter-spacing: 0.06em; }
-  .nav .dots { display: flex; gap: 5px; }
-  .nav .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gray-300); transition: background 0.2s, width 0.2s; cursor: pointer; }
-  .nav .dot.active { background: var(--red); width: 16px; border-radius: 3px; }
-
-  .key-hint { position: fixed; top: clamp(12px, 2.2vh, 18px); right: 22px; font-size: 11px; color: var(--gray-400); display: flex; gap: 6px; align-items: center; }
-  .key-hint kbd { background: var(--white); border: 1px solid var(--gray-200); border-radius: 4px; padding: 2px 6px; font-family: inherit; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
-
-  /* ── SHARED ── */
-  .eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--red); margin-bottom: 6px; }
-  .slide-num { font-size: 12px; font-weight: 500; color: var(--gray-300); }
-
-  /* ── SLIDE COVER ── */
-  .slide-cover {
-    flex-direction: column; align-items: center; justify-content: center;
-    background: var(--white); overflow: hidden;
-    position: relative;
-  }
-  .cover-stripe {
-    position: absolute; top: 0; left: 0; right: 0; height: 6px;
-    background: var(--red);
-  }
-  .cover-pattern {
-    position: absolute; inset: 0; pointer-events: none; overflow: hidden;
-  }
-  .cover-pattern::before {
-    content: '';
-    position: absolute; top: -120px; right: -120px;
-    width: 480px; height: 480px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(192,24,42,0.07) 0%, transparent 70%);
-  }
-  .cover-pattern::after {
-    content: '';
-    position: absolute; bottom: -80px; left: -60px;
-    width: 300px; height: 300px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(192,24,42,0.04) 0%, transparent 70%);
-  }
-
-  .logo-mark {
-    width: 60px; height: 60px; border-radius: 14px;
-    background: var(--red); display: flex; align-items: center; justify-content: center;
-    margin-bottom: 28px;
-    box-shadow: 0 8px 24px rgba(192,24,42,0.3);
-  }
-  .logo-mark svg { width: 32px; height: 32px; }
-
-  .cover-title {
-    font-size: clamp(52px, 7vw, 80px); font-weight: 900;
-    color: var(--gray-900); letter-spacing: -0.03em; line-height: 1;
-    text-align: center;
-  }
-  .cover-title span { color: var(--red); }
-
-  .cover-subtitle {
-    margin-top: 14px; font-size: 17px; color: var(--gray-600);
-    text-align: center; max-width: 500px; line-height: 1.6;
-  }
-
-  .cover-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--red-muted); border: 1px solid var(--red-border);
-    border-radius: 999px; padding: 6px 14px;
-    font-size: 11px; font-weight: 700; color: var(--red);
-    text-transform: uppercase; letter-spacing: 0.08em;
-    margin-bottom: 22px;
-  }
-
-  .cover-meta {
-    margin-top: clamp(24px, 5vh, 44px); display: flex; gap: 28px; align-items: center;
-    background: var(--gray-50); border: 1px solid var(--gray-200);
-    border-radius: 14px; padding: 18px 28px;
-  }
-  .cover-meta .mi { text-align: center; }
-  .cover-meta .mi .lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-400); margin-bottom: 3px; }
-  .cover-meta .mi .val { font-size: 14px; font-weight: 700; color: var(--gray-800); }
-  .cover-meta .mdiv { width: 1px; height: 32px; background: var(--gray-200); }
-
-  /* ── SECTION HEADER SLIDES ── */
-  .slide-section {
-    flex-direction: column; align-items: center; justify-content: center;
-    background: var(--white); overflow: hidden; position: relative;
-  }
-  .section-accent {
-    position: absolute; top: 0; left: 0; right: 0; height: 6px; background: var(--red);
-  }
-  .section-num-bg {
-    position: absolute; font-size: 180px; font-weight: 900;
-    color: rgba(0,0,0,0.03); letter-spacing: -0.05em; pointer-events: none;
-    line-height: 1; bottom: 40px;
-  }
-  .section-title {
-    font-size: clamp(36px, 5vw, 56px); font-weight: 800;
-    color: var(--gray-900); text-align: center; letter-spacing: -0.03em;
-  }
-  .section-title span { color: var(--red); }
-  .section-desc {
-    font-size: 17px; color: var(--gray-600); text-align: center;
-    max-width: 520px; margin-top: 14px; line-height: 1.65;
-  }
-
-  /* ── CONTENT SLIDE ── */
-  .slide-content {
-    flex-direction: column; background: var(--off-white);
-    padding: clamp(30px, 5.2vh, 52px) clamp(34px, 5.8vw, 72px) clamp(78px, 12vh, 112px);
-    overflow: hidden; position: relative;
-  }
-  .slide-content .top-stripe { position: absolute; top:0; left:0; right:0; height:4px; background:var(--red); }
-
-  .slide-header {
-    display: flex; align-items: flex-start;
-    justify-content: space-between; margin-bottom: clamp(18px, 3.8vh, 36px);
-    gap: 24px;
-  }
-  .slide-header h3 {
-    font-size: clamp(24px, 2.8vw, 34px); font-weight: 800;
-    color: var(--gray-900); letter-spacing: -0.025em; line-height: 1.15;
-  }
-
-  /* ── CARDS ── */
-  .card-grid { display: grid; gap: clamp(10px, 2vh, 14px); flex: 1; min-height: 0; }
-  .card-grid.cols-2 { grid-template-columns: 1fr 1fr; }
-  .card-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-  .card-grid.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-
-  .card {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: 14px; padding: clamp(16px, 2.8vh, 24px);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  }
-  .card .card-icon {
-    width: 40px; height: 40px; border-radius: 10px;
-    background: var(--red-muted); display: flex; align-items: center; justify-content: center;
-    margin-bottom: 14px; font-size: 19px;
-    color: var(--red);
-  }
-  .card .card-icon svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .card .card-title { font-size: 14px; font-weight: 700; color: var(--gray-900); margin-bottom: 6px; }
-  .card .card-body { font-size: 13px; color: var(--gray-600); line-height: 1.55; }
-
-  /* ── TECH TABLE ── */
-  .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; min-height: 0; }
-  .tech-row {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: 10px; padding: clamp(10px, 1.8vh, 14px) 18px;
-    display: flex; align-items: center; gap: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  .tech-icon {
-    width: 34px; height: 34px; border-radius: 10px; flex: 0 0 34px;
-    display: inline-flex; align-items: center; justify-content: center;
-    background: var(--gray-100); border: 1px solid var(--gray-200);
-    color: var(--gray-800); font-size: 11px; font-weight: 900;
-  }
-  .tech-icon svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  .tech-icon.ts { background:#EAF3FF; border-color:#CBE2FF; color:#3178C6; }
-  .tech-icon.node { background:#EDF8EE; border-color:#CBE9CE; color:#339933; }
-  .tech-icon.next { background:#111827; border-color:#111827; color:#FFFFFF; }
-  .tech-icon.react { background:#EAFBFF; border-color:#C5F3FF; color:#149ECA; }
-  .tech-icon.pg { background:#EDF3FA; border-color:#CCDCEC; color:#336791; }
-  .tech-icon.prisma { background:#EEF2F7; border-color:#D6DEE9; color:#243B53; }
-  .tech-icon.tailwind { background:#EAFBFF; border-color:#BFEFF8; color:#06B6D4; }
-  .tech-icon.deploy { background:var(--red-muted); border-color:var(--red-border); color:var(--red); }
-  .tech-copy { min-width: 0; }
-  .tech-row .layer { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--red); margin-bottom: 2px; }
-  .tech-row .tech-name { font-size: 13px; font-weight: 700; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tech-row .tech-desc { font-size: 11px; color: var(--gray-400); margin-left: auto; white-space: nowrap; }
-
-  /* ── CODE BLOCK ── */
-  .code-block {
-    background: var(--gray-900); border-radius: 12px;
-    padding: 20px 24px; font-family: 'SF Mono','Fira Code',monospace;
-    font-size: 12.5px; line-height: 1.72; overflow: hidden;
-    border: 1px solid var(--gray-800);
-  }
-  .code-block .code-line { display: block; color:white; }
-  .c-comment { color: #636E7B; } .c-keyword { color: #C678DD; }
-  .c-string { color: #98C379; } .c-func { color: #61AFEF; }
-  .c-num { color: #D19A66; } .c-prop { color: #ABB2BF; }
-  .c-red { color: #E06C75; }
-
-  /* ── SPLIT ── */
-  .split { display: flex; gap: clamp(18px, 3vw, 28px); flex: 1; min-height: 0; }
-  .split .col-left { flex: 1; display: flex; flex-direction: column; gap: 12px; }
-  .split .col-right { flex: 1; display: flex; flex-direction: column; gap: 12px; }
-
-  /* ── ARCH ── */
-  .arch-box {
-    background: var(--white); border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px 16px;
-    font-size: 12px; font-weight: 600; color: var(--gray-800); text-align: center; white-space: nowrap;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-  .arch-box.highlight { background: var(--red); border-color: var(--red-dark); color: var(--white); }
-  .arch-box.dim { background: var(--gray-100); color: var(--gray-400); border-color: var(--gray-200); }
-  .arch-arrow { font-size: 20px; color: var(--gray-300); display: flex; align-items: center; padding: 0 8px; align-self: center; }
-  .arch-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-400); margin-bottom: 6px; text-align: center; }
-
-  /* ── ENTITY ── */
-  .entity-block { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-  .entity-header { background: var(--gray-900); padding: 10px 16px; font-size: 13px; font-weight: 700; color: var(--white); display: flex; align-items: center; gap: 6px; }
-  .entity-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
-  .entity-field { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-  .entity-field .ftype { font-size: 10px; font-weight: 700; color: var(--red); background: var(--red-muted); border-radius: 4px; padding: 2px 6px; min-width: 36px; text-align: center; }
-  .entity-field .fname { color: var(--gray-800); font-weight: 500; }
-  .entity-field .fdesc { color: var(--gray-400); font-size: 11px; margin-left: auto; }
-
-  /* ── FLOW ── */
-  .flow-steps { display: flex; align-items: flex-start; gap: 0; flex: 1; padding-top: 4px; }
-  .flow-step { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; }
-  .flow-step:not(:last-child)::after { content: ''; position: absolute; top: 21px; left: 50%; width: 100%; height: 2px; background: var(--gray-200); z-index: 0; }
-  .flow-step .step-num { width: 42px; height: 42px; border-radius: 50%; background: var(--red); color: var(--white); font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; flex-shrink: 0; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(192,24,42,0.3); }
-  .flow-step .step-title { font-size: 11px; font-weight: 700; color: var(--gray-900); margin-bottom: 3px; padding: 0 4px; }
-  .flow-step .step-desc { font-size: 10px; color: var(--gray-400); line-height: 1.45; padding: 0 2px; }
-
-  /* ── STAT ── */
-  .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-  .stat-card .stat-value { font-size: 40px; font-weight: 900; color: var(--gray-900); letter-spacing: -0.03em; line-height: 1; }
-  .stat-card .stat-value span { color: var(--red); }
-  .stat-card .stat-label { font-size: 12px; color: var(--gray-400); font-weight: 500; }
-
-  /* ── ROADMAP ── */
-  .roadmap { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-  .rm-item { display: flex; align-items: center; gap: 12px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 13px 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
-  .rm-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-  .rm-dot.done { background: var(--red); color: var(--white); }
-  .rm-dot.todo { background: var(--gray-200); }
-  .rm-text { font-size: 13px; font-weight: 500; color: var(--gray-800); }
-  .rm-text.todo-text { color: var(--gray-400); }
-
-  /* ── TAG ── */
-  .tag { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--gray-600); font-weight: 500; }
-  .tag.red { background: var(--red-muted); border-color: var(--red-border); color: var(--red); }
-
-  ::-webkit-scrollbar { display: none; }
-
-  @media (max-height: 760px) {
-    .slide-header h3 { font-size: 24px; }
-    .card .card-title { font-size: 13px; }
-    .card .card-body { font-size: 11.5px; line-height: 1.45; }
-    .card .card-icon { width: 34px; height: 34px; margin-bottom: 10px; }
-    .code-block { font-size: 10.5px; line-height: 1.52; padding: 15px 18px; }
-    .flow-step .step-desc { font-size: 9px; }
-    .stat-card .stat-value { font-size: 32px; }
-    .rm-item { padding: 10px 14px; }
-    .entity-body { gap: 4px; padding: 10px 14px; }
-    .cover-title { font-size: clamp(44px, 6vw, 64px); }
-    #s9 .col-left { gap: 8px !important; }
-    #s9 .card { padding: 12px 14px; }
-    #s9 .card .card-body { font-size: 11px; line-height: 1.35; }
-    #s9 .card .card-title { margin-bottom: 5px; }
-    #s9 .tag { font-size: 9.5px; padding: 3px 7px; }
-  }
-
-  @media (max-width: 860px) {
-    .slide-content { padding-inline: 24px; }
-    .card-grid.cols-3, .card-grid.cols-4, .tech-grid { grid-template-columns: 1fr 1fr; }
-    .split { gap: 14px; }
-    .cover-meta { flex-wrap: wrap; justify-content: center; gap: 16px; }
-    .cover-meta .mdiv { display: none; }
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cartalog · Apresentação do projeto</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+    :root{--red:#d70025;--red2:#aa001e;--ink:#17171b;--muted:#60616b;--line:#e7e7eb;--pale:#f7f7f9;--white:#fff}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:'DM Sans',Arial,sans-serif;color:var(--ink);background:#161619}
+    button{font:inherit} .deck{position:relative;width:100vw;height:100dvh;overflow:hidden}
+    .slide{display:none;position:absolute;inset:0;background:var(--white);padding:clamp(28px,5vw,76px);overflow:auto}
+    .slide.active{display:flex;flex-direction:column;animation:appear .3s ease-out}
+    @keyframes appear{from{opacity:.5;transform:translateY(8px)}to{opacity:1;transform:none}}
+    .slide:before{content:"";position:absolute;left:0;top:0;width:100%;height:7px;background:var(--red)}
+    .slide.dark{background:var(--ink);color:var(--white)}
+    .slide.dark:before{background:linear-gradient(90deg,var(--red),#f94c62)}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:24px;flex:none}
+    .brand{display:flex;align-items:center;gap:11px;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.06em}
+    .brand img{height:33px;width:33px;border-radius:8px}
+    .top .eyebrow{margin:0}.eyebrow{color:var(--red);font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}
+    .dark .eyebrow{color:#ff6576}
+    h1,h2,h3,p{margin:0}h1,h2,h3{font-family:'Space Grotesk',sans-serif;letter-spacing:-.055em}
+    h1{font-size:clamp(58px,8.3vw,126px);line-height:.93}h2{font-size:clamp(34px,4.5vw,67px);line-height:1.04;max-width:1050px}h3{font-size:clamp(18px,2vw,28px);line-height:1.15}
+    .red{color:var(--red)}.dark .red{color:#ff4c64}
+    .intro{font-size:clamp(16px,1.5vw,23px);line-height:1.45;color:var(--muted);max-width:940px;margin-top:20px}.dark .intro{color:#c4c4cc}
+    .hero{margin:auto 0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(240px,.7fr);gap:32px;align-items:center}
+    .hero-mark{height:min(43vw,430px);width:min(43vw,430px);object-fit:contain;justify-self:center;filter:drop-shadow(0 28px 50px rgba(0,0,0,.16))}
+    .hero .intro{max-width:720px}
+    .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px}.chip{border:1px solid #ffffff4a;border-radius:100px;padding:8px 13px;font-size:12px;font-weight:700;color:#e5e5eb}
+    .section-head{margin:clamp(26px,4vh,48px) 0 0}.section-head h2{margin-top:10px}
+    .body{display:flex;flex:1;flex-direction:column;justify-content:center;min-height:0;padding:20px 0 36px}
+    .grid{display:grid;gap:14px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{border:1px solid var(--line);border-radius:22px;padding:clamp(18px,2.2vw,30px);background:var(--pale);min-width:0}
+    .card.white{background:#fff}.card.red-card{background:var(--red);color:#fff;border-color:var(--red)}
+    .card.dark-card{background:var(--ink);border-color:var(--ink);color:#fff}
+    .card small,.mini{display:block;color:var(--red);font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:15px}
+    .card.red-card small,.card.dark-card small{color:#ffc0c8}
+    .card p{color:var(--muted);font-size:clamp(13px,1.12vw,16px);line-height:1.5;margin-top:12px}
+    .card.red-card p,.card.dark-card p{color:#ebdce0}
+    .card .n{font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;letter-spacing:-.06em;color:var(--red);line-height:1}
+    .card.red-card .n,.card.dark-card .n{color:#fff}
+    .flow{display:flex;align-items:stretch;gap:8px}.flow .card{flex:1}.arrow{display:flex;align-items:center;color:var(--red);font-size:24px;font-weight:700}
+    .statement{background:#fff1f3;border-left:5px solid var(--red);padding:20px 25px;border-radius:0 16px 16px 0;font-size:clamp(15px,1.5vw,21px);line-height:1.45;margin-top:18px}
+    .dark .statement{background:#352027}
+    .bullets{display:grid;gap:14px;list-style:none;padding:0;margin:0}.bullets li{display:flex;gap:14px;font-size:clamp(16px,1.5vw,23px);line-height:1.35}.bullets li:before{content:"";width:9px;height:9px;background:var(--red);border-radius:50%;flex:none;margin-top:.5em}
+    .diagram{display:flex;align-items:center;justify-content:center;gap:12px}.diagram .box{border:1px solid var(--line);border-radius:17px;padding:22px;text-align:center;background:var(--pale);flex:1;min-width:0;font-weight:800}.diagram .box span{display:block;color:var(--muted);font-weight:500;font-size:12px;margin-top:7px}.diagram .arrow{flex:none}
+    .label{display:inline-flex;color:var(--red);background:#ffecef;font-size:12px;font-weight:800;border-radius:999px;padding:7px 11px;margin-bottom:15px}
+    .foot{position:absolute;left:clamp(28px,5vw,76px);right:clamp(28px,5vw,76px);bottom:22px;display:flex;justify-content:space-between;color:#a0a0a8;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;pointer-events:none}
+    .dark .foot{color:#8f8f9a}
+    .controls{position:fixed;z-index:20;right:22px;bottom:20px;display:flex;align-items:center;gap:7px;background:var(--ink);color:#fff;padding:6px;border-radius:100px;box-shadow:0 9px 35px #0003}
+    .controls button{border:0;background:transparent;color:#fff;width:33px;height:33px;border-radius:50%;cursor:pointer}.controls button:hover{background:#ffffff30}.controls span{min-width:48px;text-align:center;font-size:12px;font-weight:800}
+    @media(max-width:800px){.slide{padding:28px 22px 75px}.hero{grid-template-columns:1fr}.hero-mark{display:none}.grid.three,.grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{flex-direction:column}.flow .arrow{display:none}.diagram{flex-wrap:wrap}.diagram .box{flex-basis:40%}.diagram .arrow{display:none}.section-head{margin-top:22px}.body{justify-content:flex-start;padding-top:26px}.foot{display:none}}
+    @media(max-height:650px){.slide{padding-top:22px}.section-head{margin-top:20px}.body{padding-top:12px}.card{padding:16px}.card p{margin-top:7px}.foot{display:none}}
+    @media print{html,body{height:auto;overflow:visible;background:white}.deck{height:auto;overflow:visible}.slide,.slide.active{display:flex;position:relative;height:100vh;page-break-after:always;animation:none}.controls{display:none}}
+  </style>
 </head>
 <body>
-
-<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" focusable="false">
-  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></symbol>
-  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-5M12 16V8M16 16v-9"/></symbol>
-  <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a2 2 0 0 0 1.4-3.4l-.3-.3a2 2 0 0 1 1.4-3.4H17a4 4 0 0 0 0-8.1A8.8 8.8 0 0 0 12 3Z"/><circle cx="7.5" cy="10" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="14" cy="7.5" r="1"/></symbol>
-  <symbol id="i-handshake" viewBox="0 0 24 24"><path d="m8 12 3 3a2 2 0 0 0 3 0l1-1"/><path d="m14 8 2 2a3 3 0 0 0 4 0l1-1"/><path d="M3 9h4l3-3a3 3 0 0 1 4 0l1 1"/><path d="m3 15 3 3h4"/></symbol>
-  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></symbol>
-  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
-  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
-  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></symbol>
-  <symbol id="i-docs" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
-  <symbol id="i-route" viewBox="0 0 24 24"><path d="M5 5h4a4 4 0 0 1 0 8H7a4 4 0 0 0 0 8h12"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="21" r="2"/></symbol>
-  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7" cy="14" r="4"/><path d="m10 11 9-9M15 6l3 3"/></symbol>
-  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.4 8.4-8 9-4.6-.6-8-4-8-9V6z"/></symbol>
-  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
-  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
-  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H8a5 5 0 1 1 1-9.9A6 6 0 0 1 20 12a3.5 3.5 0 0 1-2.5 7Z"/></symbol>
-  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 10-13h-7z"/></symbol>
-</svg>
-
-<div class="deck">
-
-  <!-- 01 CAPA -->
-  <div class="slide slide-cover active" id="s1">
-    <div class="cover-stripe"></div>
-    <div class="cover-pattern"></div>
-    <div class="cover-badge">TCC</div>
-    <div class="cover-title">Car<span>talog</span></div>
-    <p class="cover-subtitle">SaaS multi-tenant para gestão de catálogos de veículos com subdomínios exclusivos por empresa</p>
-    <div class="cover-meta">
-      <div class="mi"><div class="lbl">Alunos</div><div class="val">Joseph Santos // Gabriel Santos</div></div>
-      <div class="mdiv"></div>
-      <div class="mi"><div class="lbl">Stack</div><div class="val">JavaScript</div></div>
-    </div>
-  </div>
-
-  <!-- 02 PROBLEMA -->
-  <div class="slide slide-section" id="s2">
-    <div class="section-accent"></div>
-    <div class="section-num-bg">02</div>
-    <div class="eyebrow" style="text-align:center">Contexto</div>
-    <div class="section-title">O <span>Problema</span></div>
-    <p class="section-desc">Revendedoras de veículos enfrentam barreiras altas para ter presença digital — custo elevado, complexidade técnica e soluções genéricas que não atendem ao nicho automotivo.</p>
-  </div>
-
-  <!-- 03 SOLUÇÃO -->
-  <div class="slide slide-content" id="s3">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Solução</div><h3>Shopify para<br>revendedoras de carros</h3></div>
-      <div class="slide-num">03 / 13</div>
-    </div>
-    <div class="card-grid cols-3">
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-globe"></use></svg></div>
-        <div class="card-title">Site próprio em minutos</div>
-        <div class="card-body">Cada empresa ganha um catálogo público no subdomínio exclusivo <strong>loja.cartalog.com</strong>.</div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-chart"></use></svg></div>
-        <div class="card-title">Painel administrativo</div>
-        <div class="card-body">Dashboard com métricas, gestão de estoque, leads e equipe em uma interface unificada.</div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-palette"></use></svg></div>
-        <div class="card-title">Identidade visual</div>
-        <div class="card-body">Logo, cores, banners e SEO configuráveis — cada empresa com sua própria marca.</div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-handshake"></use></svg></div>
-        <div class="card-title">CRM de leads</div>
-        <div class="card-body">Funil de vendas com status personalizáveis, histórico de interações e agendamentos.</div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-users"></use></svg></div>
-        <div class="card-title">Gestão de equipe</div>
-        <div class="card-body">Roles ADMIN, MANAGER e SELLER com permissões diferenciadas por nível de acesso.</div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-phone"></use></svg></div>
-        <div class="card-title">Multi-plataforma</div>
-        <div class="card-body">Web responsivo hoje, com apps mobile e desktop no roadmap do projeto.</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 04 ARQUITETURA -->
-  <div class="slide slide-content" id="s4">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Arquitetura</div><h3>Estrutura do sistema</h3></div>
-      <div class="slide-num">04 / 13</div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:28px;flex:1;align-items:center;justify-content:center;">
-      <div style="display:flex;align-items:center;gap:0;width:100%;max-width:820px;">
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
-          <div class="arch-label">Cliente</div>
-          <div class="arch-box">Browser / App</div>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
-          <div class="arch-label">Frontend</div>
-          <div class="arch-box highlight">Next.js 16</div>
-          <div class="arch-box" style="font-size:11px;">App Router · React 19</div>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
-          <div class="arch-label">API REST</div>
-          <div class="arch-box highlight">Fastify 5</div>
-          <div class="arch-box" style="font-size:11px;">Vercel · /api/v1</div>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;">
-          <div class="arch-label">Dados</div>
-          <div class="arch-box highlight">PostgreSQL 16</div>
-          <div class="arch-box" style="font-size:11px;">Prisma 7 ORM</div>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;width:100%;max-width:820px;">
-        <div class="card" style="padding:16px 18px;">
-          <div class="card-icon" style="width:34px;height:34px;font-size:16px;margin-bottom:10px;"><svg><use href="#i-lock"></use></svg></div>
-          <div class="card-title" style="font-size:12px;">Auth JWT</div>
-          <div class="card-body" style="font-size:11px;">Access 15min + Refresh 7d</div>
-        </div>
-        <div class="card" style="padding:16px 18px;">
-          <div class="card-icon" style="width:34px;height:34px;font-size:16px;margin-bottom:10px;"><svg><use href="#i-globe"></use></svg></div>
-          <div class="card-title" style="font-size:12px;">Multi-tenant</div>
-          <div class="card-body" style="font-size:11px;">Isolamento por subdomínio</div>
-        </div>
-        <div class="card" style="padding:16px 18px;">
-          <div class="card-icon" style="width:34px;height:34px;font-size:16px;margin-bottom:10px;"><svg><use href="#i-upload"></use></svg></div>
-          <div class="card-title" style="font-size:12px;">Upload</div>
-          <div class="card-body" style="font-size:11px;">Multipart · Fastify Static</div>
-        </div>
-        <div class="card" style="padding:16px 18px;">
-          <div class="card-icon" style="width:34px;height:34px;font-size:16px;margin-bottom:10px;"><svg><use href="#i-docs"></use></svg></div>
-          <div class="card-title" style="font-size:12px;">Docs</div>
-          <div class="card-body" style="font-size:11px;">Swagger / OpenAPI 3.0</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--red-border);border-radius:12px;padding:14px 18px;max-width:820px;width:100%;">
-        <span class="tech-icon deploy"><svg><use href="#i-cloud"></use></svg></span>
-        <div style="min-width:0;">
-          <div style="font-size:12px;font-weight:800;color:var(--gray-900);">Hospedagem da API: Vercel</div>
-          <div style="font-size:11px;color:var(--gray-500);line-height:1.45;">O backend está linkado ao projeto <strong>cartalog-api</strong>; em desenvolvimento roda em <code style="background:var(--gray-100);padding:1px 5px;border-radius:4px;">https://cartalog-api.vercel.app/</code> e o frontend consome via <code style="background:var(--gray-100);padding:1px 5px;border-radius:4px;">NEXT_PUBLIC_API_URL/api/v1</code>.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 05 MULTI-TENANCY -->
-  <div class="slide slide-content" id="s5">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Multi-Tenancy</div><h3>Identificação de tenant<br>via subdomínio</h3></div>
-      <div class="slide-num">05 / 13</div>
-    </div>
-    <div class="split">
-      <div class="col-left">
-        <div class="card" style="flex:1;">
-          <div class="card-title" style="margin-bottom:16px;font-size:15px;">Fluxo de requisição</div>
-          <div style="display:flex;flex-direction:column;gap:12px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:26px;height:26px;border-radius:50%;background:var(--red);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">1</div>
-              <div style="font-size:13px;color:var(--gray-700);">Cliente acessa <code style="background:var(--red-muted);color:var(--red);padding:2px 6px;border-radius:4px;font-size:11px;">carstore.cartalog.com</code> ou <code style="background:var(--gray-100);color:var(--gray-800);padding:2px 6px;border-radius:4px;font-size:11px;">carstore.localhost</code></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:26px;height:26px;border-radius:50%;background:var(--red);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">2</div>
-              <div style="font-size:13px;color:var(--gray-700);"><code style="background:var(--gray-100);color:var(--gray-800);padding:2px 6px;border-radius:4px;font-size:11px;">tenantMiddleware</code> lê <code style="background:var(--gray-100);color:var(--gray-800);padding:2px 6px;border-radius:4px;font-size:11px;">Host</code> ou <code style="background:var(--gray-100);color:var(--gray-800);padding:2px 6px;border-radius:4px;font-size:11px;">X-Tenant-Slug</code></div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:26px;height:26px;border-radius:50%;background:var(--red);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">3</div>
-              <div style="font-size:13px;color:var(--gray-700);">Extrai slug → busca empresa no banco</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:26px;height:26px;border-radius:50%;background:var(--red);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">4</div>
-              <div style="font-size:13px;color:var(--gray-700);">Injeta <code style="background:var(--red-muted);color:var(--red);padding:2px 6px;border-radius:4px;font-size:11px;">request.tenant</code> no contexto</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div style="width:26px;height:26px;border-radius:50%;background:var(--red);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">5</div>
-              <div style="font-size:13px;color:var(--gray-700);">Queries filtradas automaticamente por <code style="background:var(--red-muted);color:var(--red);padding:2px 6px;border-radius:4px;font-size:11px;">company_id</code></div>
-            </div>
-          </div>
-        </div>
-        <div class="card" style="padding:16px 20px;">
-          <div style="font-size:11px;color:var(--gray-400);margin-bottom:6px;font-weight:600;">Isolamento de dados</div>
-          <div style="font-size:12px;color:var(--gray-600);line-height:1.55;">Shared database com row-level isolation — uma única instância serve todos os tenants com segurança.</div>
-        </div>
-      </div>
-      <div class="col-right">
-        <div class="code-block" style="flex:1;">
-<span class="code-line"><span class="c-comment">// tenantMiddleware.ts</span></span>
-<span class="code-line"><span class="c-keyword">const</span> host = request.headers.host ?? <span class="c-string">''</span></span>
-<span class="code-line"><span class="c-keyword">const</span> slug = <span class="c-func">extractSubdomain</span>(host)</span>
-<span class="code-line">  || request.headers[<span class="c-string">'x-tenant-slug'</span>]</span>
-<span class="code-line">  || <span class="c-keyword">null</span></span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line"><span class="c-keyword">if</span> (!slug) <span class="c-keyword">throw new</span> <span class="c-func">AppError</span>(</span>
-<span class="code-line">  <span class="c-string">'Tenant not identified'</span>, <span class="c-num">400</span></span>
-<span class="code-line">)</span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line"><span class="c-keyword">const</span> company = <span class="c-keyword">await</span> prisma.company.<span class="c-func">findUnique</span>({</span>
-<span class="code-line">  where: { slug },</span>
-<span class="code-line">  include: { siteSettings: <span class="c-keyword">true</span>, seoSettings: <span class="c-keyword">true</span> }</span>
-<span class="code-line">})</span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line"><span class="c-keyword">if</span> (!company) <span class="c-keyword">throw new</span> <span class="c-func">AppError</span>(<span class="c-string">'Catalog not found'</span>, <span class="c-num">404</span>)</span>
-<span class="code-line">request.tenant = company</span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line"><span class="c-comment">// Uso em qualquer rota protegida:</span></span>
-<span class="code-line">prisma.vehicle.<span class="c-func">findMany</span>({</span>
-<span class="code-line">  where: {</span>
-<span class="code-line">    companyId: req.tenant.id  <span class="c-comment">// filtro automático</span></span>
-<span class="code-line">  }</span>
-<span class="code-line">})</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 06 STACK -->
-  <div class="slide slide-content" id="s6">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Stack Tecnológica</div><h3>Tecnologias utilizadas</h3></div>
-      <div class="slide-num">06 / 13</div>
-    </div>
-    <div class="tech-grid">
-      <div class="tech-row"><span class="tech-icon node">JS</span><div class="tech-copy"><div class="layer">Backend</div><div class="tech-name">Node.js + Fastify 5.8</div></div><div class="tech-desc">API REST</div></div>
-      <div class="tech-row"><span class="tech-icon ts">TS</span><div class="tech-copy"><div class="layer">Linguagem</div><div class="tech-name">TypeScript 5/6</div></div><div class="tech-desc">web · api · mobile</div></div>
-      <div class="tech-row"><span class="tech-icon next">N</span><div class="tech-copy"><div class="layer">Frontend</div><div class="tech-name">Next.js 16 + App Router</div></div><div class="tech-desc">SSR/rotas</div></div>
-      <div class="tech-row"><span class="tech-icon react"><svg><use href="#i-zap"></use></svg></span><div class="tech-copy"><div class="layer">UI runtime</div><div class="tech-name">React 19 + React Query</div></div><div class="tech-desc">cache server</div></div>
-      <div class="tech-row"><span class="tech-icon prisma">P</span><div class="tech-copy"><div class="layer">ORM</div><div class="tech-name">Prisma 7.8 + pg adapter</div></div><div class="tech-desc">type-safe</div></div>
-      <div class="tech-row"><span class="tech-icon pg"><svg><use href="#i-database"></use></svg></span><div class="tech-copy"><div class="layer">Banco</div><div class="tech-name">PostgreSQL 16</div></div><div class="tech-desc">Docker local</div></div>
-      <div class="tech-row"><span class="tech-icon tailwind">TW</span><div class="tech-copy"><div class="layer">Estilo</div><div class="tech-name">Tailwind CSS + Radix</div></div><div class="tech-desc">design system</div></div>
-      <div class="tech-row"><span class="tech-icon react"><svg><use href="#i-phone"></use></svg></span><div class="tech-copy"><div class="layer">Mobile</div><div class="tech-name">Expo 56 + React Native</div></div><div class="tech-desc">em evolução</div></div>
-      <div class="tech-row"><span class="tech-icon"><svg><use href="#i-lock"></use></svg></span><div class="tech-copy"><div class="layer">Auth</div><div class="tech-name">JWT stateless</div></div><div class="tech-desc">15min + 7d</div></div>
-      <div class="tech-row"><span class="tech-icon">Z</span><div class="tech-copy"><div class="layer">Validação</div><div class="tech-name">Zod v4</div></div><div class="tech-desc">body · params · query</div></div>
-      <div class="tech-row"><span class="tech-icon"><svg><use href="#i-upload"></use></svg></span><div class="tech-copy"><div class="layer">Arquivos</div><div class="tech-name">Multipart + Static</div></div><div class="tech-desc">uploads servidos pela API</div></div>
-      <div class="tech-row"><span class="tech-icon deploy"><svg><use href="#i-cloud"></use></svg></span><div class="tech-copy"><div class="layer">Deploy API</div><div class="tech-name">Vercel · cartalog-api</div></div><div class="tech-desc">API_URL configurável</div></div>
-    </div>
-  </div>
-
-  <!-- 07 MODELO DE DADOS -->
-  <div class="slide slide-content" id="s7">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Banco de Dados</div><h3>Modelo de dados principal</h3></div>
-      <div class="slide-num">07 / 13</div>
-    </div>
-    <div class="split">
-      <div class="col-left">
-        <div class="entity-block">
-          <div class="entity-header">🏢 Company <span style="opacity:0.4;font-size:11px;font-weight:400;margin-left:6px;">tenant raiz</span></div>
-          <div class="entity-body">
-            <div class="entity-field"><span class="ftype">PK</span><span class="fname">id</span><span class="fdesc">UUID</span></div>
-            <div class="entity-field"><span class="ftype">STR</span><span class="fname">slug</span><span class="fdesc">único — identifica o tenant</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">users[]</span><span class="fdesc">ADMIN | MANAGER | SELLER</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">vehicles[]</span><span class="fdesc">estoque</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">leads[]</span><span class="fdesc">CRM</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">SiteSettings</span><span class="fdesc">cores, logo, SEO</span></div>
-          </div>
-        </div>
-        <div class="entity-block">
-          <div class="entity-header">🚗 Vehicle</div>
-          <div class="entity-body">
-            <div class="entity-field"><span class="ftype">FK</span><span class="fname">companyId</span><span class="fdesc">isolamento tenant</span></div>
-            <div class="entity-field"><span class="ftype">FK</span><span class="fname">brandId / modelId</span><span class="fdesc">globais</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">images[]</span><span class="fdesc">até 20 · 1 cover</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">features[]</span><span class="fdesc">opcionais globais</span></div>
-            <div class="entity-field"><span class="ftype">ENUM</span><span class="fname">status</span><span class="fdesc">available · reserved · sold</span></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-right">
-        <div class="entity-block">
-          <div class="entity-header">📋 Lead</div>
-          <div class="entity-body">
-            <div class="entity-field"><span class="ftype">FK</span><span class="fname">companyId</span><span class="fdesc">isolamento tenant</span></div>
-            <div class="entity-field"><span class="ftype">FK</span><span class="fname">vehicleId</span><span class="fdesc">veículo de interesse</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">interactions[]</span><span class="fdesc">histórico de contatos</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">followups[]</span><span class="fdesc">agendamentos</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">tags[]</span><span class="fdesc">etiquetas</span></div>
-            <div class="entity-field"><span class="ftype">REL</span><span class="fname">LeadStatus</span><span class="fdesc">customizável por empresa</span></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="margin-bottom:12px;">Tabelas de referência globais</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            <span class="tag">Brand</span>
-            <span class="tag">Model</span>
-            <span class="tag">Fuel</span>
-            <span class="tag">Transmission</span>
-            <span class="tag">Feature</span>
-          </div>
-          <div style="font-size:11px;color:var(--gray-400);margin-top:10px;line-height:1.5;">Compartilhadas entre todos os tenants — sem duplicação de dados cadastrais.</div>
-        </div>
-        <div class="card" style="padding:14px 18px;">
-          <div style="font-size:11px;color:var(--gray-400);margin-bottom:6px;font-weight:600;">Upload de arquivos</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <div style="font-size:11px;color:var(--gray-600);"><span class="tag" style="font-size:10px;">vehicles</span> 5 MB</div>
-            <div style="font-size:11px;color:var(--gray-600);"><span class="tag" style="font-size:10px;">logos</span> 2 MB</div>
-            <div style="font-size:11px;color:var(--gray-600);"><span class="tag" style="font-size:10px;">banners</span> 8 MB</div>
-            <div style="font-size:11px;color:var(--gray-600);"><span class="tag" style="font-size:10px;">favicons</span> 512 KB</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 08 API MÓDULOS -->
-  <div class="slide slide-content" id="s8">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">API REST</div><h3>Módulos e endpoints</h3></div>
-      <div class="slide-num">08 / 13</div>
-    </div>
-    <div class="card-grid cols-3">
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-lock"></use></svg></div>
-        <div class="card-title">/auth</div>
-        <div class="card-body">register · login · refresh · /me<br><span style="color:var(--red);font-size:11px;font-weight:600;">Cria empresa + admin + defaults automaticamente</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-route"></use></svg></div>
-        <div class="card-title">/vehicles</div>
-        <div class="card-body">CRUD completo + upload multipart<br><span style="color:var(--gray-400);font-size:11px;">Filtros: marca, modelo, preço, ano, status</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-server"></use></svg></div>
-        <div class="card-title">/companies + /users</div>
-        <div class="card-body">Settings · banners · páginas · equipe<br><span style="color:var(--gray-400);font-size:11px;">PUT salva em 4 tabelas simultaneamente</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-handshake"></use></svg></div>
-        <div class="card-title">/leads</div>
-        <div class="card-body">CRM: status · interações · followups · tags<br><span style="color:var(--gray-400);font-size:11px;">Status customizáveis por tenant</span></div>
-      </div>
-      <div class="card" style="border-color:var(--red);border-width:1.5px;">
-        <div class="card-icon"><svg><use href="#i-globe"></use></svg></div>
-        <div class="card-title" style="color:var(--red);">/catalog <span style="color:var(--gray-400);font-size:11px;font-weight:400;">público</span></div>
-        <div class="card-body">Sem autenticação · tenant via subdomínio<br><span style="color:var(--red);font-size:11px;font-weight:600;">home · veículos · páginas estáticas</span></div>
-      </div>
-      <div class="card">
-        <div class="card-icon"><svg><use href="#i-chart"></use></svg></div>
-        <div class="card-title">/dashboard</div>
-        <div class="card-body">overview · métricas · mais vistos<br><span style="color:var(--gray-400);font-size:11px;">Leads por dia · funil de vendas</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 09 SEGURANÇA -->
-  <div class="slide slide-content" id="s9">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Segurança</div><h3>Autenticação &amp; proteção de dados</h3></div>
-      <div class="slide-num">09 / 13</div>
-    </div>
-    <div class="split">
-      <div class="col-left" style="gap:12px;">
-        <div class="card">
-          <div class="card-icon"><svg><use href="#i-key"></use></svg></div>
-          <div class="card-title">JWT Stateless</div>
-          <div class="card-body">Access token de <strong>15 minutos</strong> + Refresh token de <strong>7 dias</strong>. Sem estado no servidor — escala horizontalmente sem sessões.</div>
-        </div>
-        <div class="card">
-          <div class="card-icon"><svg><use href="#i-lock"></use></svg></div>
-          <div class="card-title">Senhas com bcrypt</div>
-          <div class="card-body">Hash unidirecional com salt rounds. Nunca armazenadas em texto plano no banco de dados.</div>
-        </div>
-        <div class="card">
-          <div class="card-icon"><svg><use href="#i-shield"></use></svg></div>
-          <div class="card-title">Isolamento por company_id</div>
-          <div class="card-body">Todo acesso privado valida <code style="background:var(--red-muted);color:var(--red);padding:2px 5px;border-radius:3px;font-size:11px;">company_id === user.companyId</code> — impossível acessar dados de outro tenant.</div>
-        </div>
-        <div class="card" style="padding:14px 18px;">
-          <div style="font-size:12px;font-weight:700;color:var(--gray-800);margin-bottom:8px;">Outras proteções</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            <span class="tag">CORS *.cartalog.com</span>
-            <span class="tag">MIME validation</span>
-            <span class="tag">Zod schemas</span>
-            <span class="tag">File size limits</span>
-          </div>
-        </div>
-      </div>
-      <div class="col-right">
-        <div class="code-block" style="flex:1;">
-<span class="code-line"><span class="c-comment">// Validação de tenant em rotas privadas</span></span>
-<span class="code-line"><span class="c-keyword">async function</span> <span class="c-func">getVehicle</span>(req, reply) {</span>
-<span class="code-line">  <span class="c-keyword">const</span> vehicle = <span class="c-keyword">await</span> prisma.vehicle</span>
-<span class="code-line">    .<span class="c-func">findUnique</span>({</span>
-<span class="code-line">      where: { id: req.params.id }</span>
-<span class="code-line">    })</span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line">  <span class="c-comment">// Garante que pertence ao tenant correto</span></span>
-<span class="code-line">  <span class="c-keyword">if</span> (vehicle.companyId !== req.user.companyId) {</span>
-<span class="code-line">    <span class="c-keyword">return</span> reply.<span class="c-func">code</span>(<span class="c-num">403</span>).<span class="c-func">send</span>()</span>
-<span class="code-line">  }</span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line">  <span class="c-keyword">return</span> vehicle</span>
-<span class="code-line">}</span>
-<span class="code-line">&nbsp;</span>
-<span class="code-line"><span class="c-comment">// Schema de validação com Zod:</span></span>
-<span class="code-line"><span class="c-keyword">const</span> createVehicleSchema = z.<span class="c-func">object</span>({</span>
-<span class="code-line">  brandId: z.<span class="c-func">string</span>().<span class="c-func">uuid</span>(),</span>
-<span class="code-line">  modelId: z.<span class="c-func">string</span>().<span class="c-func">uuid</span>(),</span>
-<span class="code-line">  year: z.<span class="c-func">number</span>().<span class="c-func">min</span>(<span class="c-num">1950</span>).<span class="c-func">max</span>(<span class="c-num">2030</span>),</span>
-<span class="code-line">  price: z.<span class="c-func">number</span>().<span class="c-func">positive</span>(),</span>
-<span class="code-line">})</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 10 FRONTEND -->
-  <div class="slide slide-content" id="s10">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Frontend</div><h3>Next.js App Router — duas aplicações em uma</h3></div>
-      <div class="slide-num">10 / 13</div>
-    </div>
-    <div class="split">
-      <div class="col-left">
-        <div class="card" style="border-left:3px solid var(--red);flex:1;">
-          <div class="card-title" style="font-size:15px;margin-bottom:14px;"><span class="tech-icon deploy" style="width:28px;height:28px;border-radius:8px;margin-right:8px;"><svg><use href="#i-globe"></use></svg></span>Site público — /[slug]</div>
-          <div style="display:flex;flex-direction:column;gap:0;">
-            <div style="font-size:12px;color:var(--gray-600);padding:9px 0;border-bottom:1px solid var(--gray-100);"><strong style="color:var(--gray-800);">/</strong> — Home com banners e veículos em destaque</div>
-            <div style="font-size:12px;color:var(--gray-600);padding:9px 0;border-bottom:1px solid var(--gray-100);"><strong style="color:var(--gray-800);">/veiculos</strong> — Listagem com filtros avançados</div>
-            <div style="font-size:12px;color:var(--gray-600);padding:9px 0;"><strong style="color:var(--gray-800);">/veiculos/[slug]</strong> — Galeria + formulário de lead</div>
-          </div>
-          <div style="margin-top:14px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:12px;font-size:11px;color:var(--gray-500);">
-            Conteúdo 100% dinâmico por tenant — SSR com dados do subdomínio.
-          </div>
-        </div>
-      </div>
-      <div class="col-right">
-        <div class="card" style="flex:1;">
-          <div class="card-title" style="font-size:15px;margin-bottom:14px;"><span class="tech-icon" style="width:28px;height:28px;border-radius:8px;margin-right:8px;"><svg><use href="#i-lock"></use></svg></span>Painel — /dashboard</div>
-          <div style="display:flex;flex-direction:column;gap:0;">
-            <div style="font-size:12px;color:var(--gray-600);padding:8px 0;border-bottom:1px solid var(--gray-100);"><strong style="color:var(--gray-800);">/dashboard</strong> — Métricas e overview geral</div>
-            <div style="font-size:12px;color:var(--gray-600);padding:8px 0;border-bottom:1px solid var(--gray-100);"><strong style="color:var(--gray-800);">/vehicles</strong> — CRUD de estoque + imagens</div>
-            <div style="font-size:12px;color:var(--gray-600);padding:8px 0;border-bottom:1px solid var(--gray-100);"><strong style="color:var(--gray-800);">/leads</strong> — CRM com funil de vendas</div>
-            <div style="font-size:12px;color:var(--gray-600);padding:8px 0;border-bottom:1px solid var(--gray-100);"><strong style="color:var(--gray-800);">/catalog</strong> — Configuração do site público</div>
-            <div style="font-size:12px;color:var(--gray-600);padding:8px 0;"><strong style="color:var(--gray-800);">/settings</strong> — Logo, cores, SEO, localização</div>
-          </div>
-        </div>
-        <div class="card" style="padding:16px 20px;">
-          <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
-            <div style="text-align:center;">
-              <div style="font-size:10px;color:var(--gray-400);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Cache</div>
-              <div style="font-size:13px;font-weight:700;color:var(--gray-800);">React Query</div>
-            </div>
-            <div style="width:1px;height:28px;background:var(--gray-200);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:10px;color:var(--gray-400);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Estado UI</div>
-              <div style="font-size:13px;font-weight:700;color:var(--gray-800);">Zustand</div>
-            </div>
-            <div style="width:1px;height:28px;background:var(--gray-200);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:10px;color:var(--gray-400);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Estilo</div>
-              <div style="font-size:13px;font-weight:700;color:var(--gray-800);">Tailwind</div>
-            </div>
-            <div style="width:1px;height:28px;background:var(--gray-200);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:10px;color:var(--gray-400);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">API</div>
-              <div style="font-size:13px;font-weight:700;color:var(--gray-800);">Axios + JWT</div>
-            </div>
-          </div>
-          <div style="margin-top:12px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--gray-500);line-height:1.45;">
-            O frontend monta a base em <code style="background:var(--white);padding:1px 5px;border-radius:4px;">NEXT_PUBLIC_API_URL/api/v1</code>, injeta <strong>Bearer token</strong> nas requests e renova o access token automaticamente quando a API retorna <strong>401</strong>.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 11 FLUXO -->
-  <div class="slide slide-content" id="s11">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Fluxo Completo</div><h3>Da empresa ao lead — passo a passo</h3></div>
-      <div class="slide-num">11 / 13</div>
-    </div>
-    <div class="flow-steps">
-      <div class="flow-step"><div class="step-num">1</div><div class="step-title">Cadastro</div><div class="step-desc">Empresa registra conta em cartalog.com/register</div></div>
-      <div class="flow-step"><div class="step-num">2</div><div class="step-title">Setup auto</div><div class="step-desc">API cria Company, User ADMIN, Settings e 5 LeadStatuses</div></div>
-      <div class="flow-step"><div class="step-num">3</div><div class="step-title">Configuração</div><div class="step-desc">Logo, cores, banners, categorias e SEO no painel</div></div>
-      <div class="flow-step"><div class="step-num">4</div><div class="step-title">Estoque</div><div class="step-desc">Cadastro de veículos com fotos e opcionais</div></div>
-      <div class="flow-step"><div class="step-num">5</div><div class="step-title">Site no ar</div><div class="step-desc">Catálogo público em {slug}.cartalog.com imediatamente</div></div>
-      <div class="flow-step"><div class="step-num">6</div><div class="step-title">Lead recebido</div><div class="step-desc">Visitante envia interesse pelo formulário público</div></div>
-      <div class="flow-step"><div class="step-num">7</div><div class="step-title">CRM</div><div class="step-desc">Equipe acompanha e fecha a venda no funil</div></div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px;">
-      <div class="stat-card"><div class="stat-value"><span>7</span></div><div class="stat-label">módulos de API</div></div>
-      <div class="stat-card"><div class="stat-value"><span>40</span><span style="font-size:22px;color:var(--gray-300);">+</span></div><div class="stat-label">endpoints REST</div></div>
-      <div class="stat-card"><div class="stat-value"><span>8</span></div><div class="stat-label">rotas no dashboard</div></div>
-      <div class="stat-card"><div class="stat-value"><span>3</span></div><div class="stat-label">roles de usuário</div></div>
-    </div>
-  </div>
-
-  <!-- 12 ROADMAP -->
-  <div class="slide slide-content" id="s12">
-    <div class="top-stripe"></div>
-    <div class="slide-header">
-      <div><div class="eyebrow">Status &amp; Roadmap</div><h3>O que foi feito e o que vem por aí</h3></div>
-      <div class="slide-num">12 / 13</div>
-    </div>
-    <div class="split">
-      <div class="col-left">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--red);margin-bottom:6px;">✅ Concluído</div>
-        <div class="roadmap">
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Arquitetura inicial e configuração</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Autenticação JWT (register / login / refresh)</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Multi-tenancy via subdomínio</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">CRUD de veículos + upload de imagens</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Configurações da empresa (site, SEO, localização)</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Sistema de leads com CRM básico</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Catálogo público por subdomínio</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Dashboard com métricas e gráficos</div></div>
-          <div class="rm-item"><div class="rm-dot done">✓</div><div class="rm-text">Gestão de equipe ADMIN / MANAGER / SELLER</div></div>
-        </div>
-      </div>
-      <div class="col-right">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray-400);margin-bottom:6px;">🔜 Próximos passos</div>
-        <div class="roadmap" style="flex:0;">
-          <div class="rm-item" style="opacity:0.55;"><div class="rm-dot todo"></div><div class="rm-text todo-text">App mobile (React Native)</div></div>
-          <div class="rm-item" style="opacity:0.55;"><div class="rm-dot todo"></div><div class="rm-text todo-text">Planos e assinatura (Stripe)</div></div>
-          <div class="rm-item" style="opacity:0.55;"><div class="rm-dot todo"></div><div class="rm-text todo-text">App desktop</div></div>
-        </div>
-        <div class="card" style="margin-top:4px;flex:1;border-left:3px solid var(--red);">
-          <div class="card-title" style="margin-bottom:10px;">Aprendizados técnicos</div>
-          <div class="card-body" style="line-height:1.65;">
-            Implementação prática de <strong>multi-tenancy compartilhado</strong> com isolamento por row-level, arquitetura de <strong>API REST modular</strong> com Fastify, e fluxo completo de produto SaaS com autenticação stateless, uploads e documentação automática via OpenAPI.
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 13 FINAL -->
-  <div class="slide slide-section" id="s13">
-    <div class="section-accent"></div>
-    <div class="section-num-bg">fim</div>
-    <div class="logo-mark" style="margin-bottom:20px;">
-      <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 22 C6 22 8 14 17 14 C26 14 28 22 28 22" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="10" cy="24" r="3" fill="white"/>
-        <circle cx="24" cy="24" r="3" fill="white"/>
-        <rect x="5" y="18" width="24" height="8" rx="3" fill="none" stroke="white" stroke-width="2"/>
-      </svg>
-    </div>
-    <div class="section-title">Obrigado!</div>
-    <p class="section-desc">Cartalog — SaaS multi-tenant para revendedoras de veículos<br>Node.js · Next.js 16 · PostgreSQL</p>
-    <div class="cover-meta" style="margin-top:40px;">
-      <div class="mi"><div class="lbl">Aluno</div><div class="val">Joseph Santo // Gabriel Santos</div></div>
-    </div>
-  </div>
-
-</div>
-
-<div class="nav">
-  <button id="prev">‹</button>
-  <div class="dots" id="dots"></div>
-  <span class="counter" id="counter">1 / 13</span>
-  <button id="next">›</button>
-</div>
-
-<div class="key-hint">
-  <kbd>←</kbd><kbd>→</kbd> navegar &nbsp;·&nbsp; <kbd>F</kbd> fullscreen
-</div>
-
+<main class="deck">
+  <section class="slide dark active">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">Apresentação do projeto · 2026</span></div>
+    <div class="hero"><div><p class="eyebrow" style="margin-bottom:23px">Catálogo + operação comercial</p><h1>Seu estoque.<br><span class="red">Seu negócio.</span><br>Um só lugar.</h1><p class="intro">Plataforma para revendedoras criarem sua presença digital, publicarem veículos e atenderem oportunidades com uma equipe conectada.</p><div class="chips"><span class="chip">Web</span><span class="chip">Desktop</span><span class="chip">Mobile</span><span class="chip">API</span></div></div><img class="hero-mark" src="../web/public/brand/cartalog-mark.png" alt="Símbolo Cartalog"></div>
+    <div class="foot"><span>Cartalog · TCC</span><span>01</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">01 / Contexto</span></div>
+    <div class="section-head"><p class="eyebrow">O problema</p><h2>Vender carros exige mais do que <span class="red">anunciar carros.</span></h2><p class="intro">Estoque, presença digital, equipe e atendimento precisam conversar entre si.</p></div>
+    <div class="body"><div class="grid three"><div class="card"><small>01 · Presença</small><h3>Site desatualizado</h3><p>Cadastrar veículos e manter o catálogo confiável custa tempo para a loja.</p></div><div class="card"><small>02 · Operação</small><h3>Leads dispersos</h3><p>Sem fila e histórico, oportunidades se perdem entre canais e vendedores.</p></div><div class="card"><small>03 · Controle</small><h3>Gestão fragmentada</h3><p>Dono, equipe e plataforma precisam de permissões e ferramentas próprias.</p></div></div></div><div class="foot"><span>Oportunidade</span><span>02</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">02 / Solução</span></div>
+    <div class="section-head"><p class="eyebrow">A proposta</p><h2>Uma plataforma para a jornada <span class="red">inteira da loja.</span></h2></div>
+    <div class="body"><div class="grid four"><div class="card red-card"><div class="n">01</div><h3>Vitrine pública</h3><p>Catálogo por subdomínio com veículos, páginas e identidade da empresa.</p></div><div class="card"><div class="n">02</div><h3>Operação</h3><p>Gestão de estoque e leads em telas web claras para o dia a dia.</p></div><div class="card"><div class="n">03</div><h3>Configuração</h3><p>Desktop para dono da loja e administradores globais.</p></div><div class="card"><div class="n">04</div><h3>Atendimento</h3><p>Vendedores acompanham e atualizam os leads na web e no mobile.</p></div></div></div><div class="foot"><span>Quatro frentes conectadas</span><span>03</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">03 / Acessos</span></div>
+    <div class="section-head"><p class="eyebrow">Papéis e permissões</p><h2>Cada pessoa vê o que precisa para <span class="red">cumprir seu papel.</span></h2></div>
+    <div class="body"><div class="grid three"><div class="card dark-card"><small>Plataforma</small><h3>Equipe Cartalog</h3><p>Recebe pedidos de demonstração, cria empresas e donos, administra planos, assinaturas e acessos globais.</p></div><div class="card"><small>Empresa · OWNER</small><h3>Dono da loja</h3><p>Configura a empresa no desktop, cadastra vendedores e veículos, distribui leads e controla a manutenção do site.</p></div><div class="card red-card"><small>Empresa · SELLER</small><h3>Vendedor</h3><p>Atende leads na web e no mobile: assume, registra conversas e atualiza o status.</p></div></div><div class="statement">Login por <strong>e-mail e senha</strong>. O slug identifica o site público da loja, não a conta de acesso.</div></div><div class="foot"><span>Autorização aplicada pela API</span><span>04</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">04 / Entrada</span></div>
+    <div class="section-head"><p class="eyebrow">Do interesse à loja ativa</p><h2>O cadastro começa com uma <span class="red">demonstração.</span></h2></div>
+    <div class="body"><div class="flow"><div class="card"><small>1</small><h3>Formulário</h3><p>Visitante solicita demonstração na landing institucional.</p></div><div class="arrow">→</div><div class="card"><small>2</small><h3>Pedido salvo</h3><p>API registra a solicitação no PostgreSQL e tenta enviar ao e-mail comercial configurado.</p></div><div class="arrow">→</div><div class="card"><small>3</small><h3>Equipe Cartalog</h3><p>Administrador global avalia o contato e cria empresa e conta do dono.</p></div><div class="arrow">→</div><div class="card red-card"><small>4</small><h3>Loja ativa</h3><p>Dono entra pelo e-mail, configura a loja e cadastra vendedores.</p></div></div><div class="statement">A criação de empresas é <strong>interna</strong>; enviar o formulário não libera acesso automaticamente.</div></div><div class="foot"><span>Onboarding controlado</span><span>05</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">05 / Desktop</span></div>
+    <div class="section-head"><p class="eyebrow">Aplicativo Electron</p><h2>O centro de configuração do <span class="red">dono da loja.</span></h2></div>
+    <div class="body"><div class="grid three"><div class="card"><small>Equipe</small><h3>Vendedores</h3><p>Cadastro, ativação e desativação. Leads de vendedores desativados voltam para a fila.</p></div><div class="card"><small>Estoque</small><h3>Veículos</h3><p>Cadastro e edição com fotos, categoria, opcionais e estado de publicação.</p></div><div class="card"><small>Vitrine</small><h3>Minha loja</h3><p>Marca, cores, tipografia, banners, páginas públicas e dados da empresa.</p></div><div class="card red-card" style="grid-column:span 3"><small>Controle exclusivo do dono</small><h3>Modo manutenção</h3><p>Oculta o catálogo público e pausa a entrada de novos leads enquanto a loja prepara alterações.</p></div></div></div><div class="foot"><span>Desktop disponível em Windows; Mac requer build próprio</span><span>06</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">06 / Plataforma</span></div>
+    <div class="section-head"><p class="eyebrow">Painel global</p><h2>A equipe Cartalog governa <span class="red">todas as empresas.</span></h2></div>
+    <div class="body"><div class="grid three"><div class="card dark-card"><small>Operação</small><h3>Empresas e donos</h3><p>Criação de lojas e contas de acesso pelo painel global, com login próprio.</p></div><div class="card"><small>Comercial</small><h3>Planos e assinaturas</h3><p>Cadastro e gestão manual do vínculo comercial de cada empresa.</p></div><div class="card"><small>Governança</small><h3>Solicitações e auditoria</h3><p>Visão dos pedidos de demonstração, administradores globais e histórico de ações.</p></div></div><div class="statement">O primeiro administrador global é configurado por <strong>comando interativo</strong>; nenhuma senha de owner fica no código do instalador.</div></div><div class="foot"><span>Controle central da plataforma</span><span>07</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">07 / Web</span></div>
+    <div class="section-head"><p class="eyebrow">Experiência web</p><h2>Um site que apresenta a loja e uma área que <span class="red">faz a operação andar.</span></h2></div>
+    <div class="body"><div class="grid two"><div class="card red-card"><small>Público</small><h3>Catálogo da loja</h3><p>Veículos por subdomínio, detalhes e imagens, páginas publicadas, marca e formulário para captar leads.</p></div><div class="card"><small>Privado</small><h3>Dashboard</h3><p>Visão operacional, estoque e gestão de leads. O vendedor atende no navegador; o dono acompanha e distribui.</p></div></div><div class="statement">Configuração institucional e cadastro de vendedores ficam no <strong>desktop</strong>. O site público respeita o modo manutenção.</div></div><div class="foot"><span>Next.js · catálogo e painel</span><span>08</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">08 / Leads</span></div>
+    <div class="section-head"><p class="eyebrow">Fluxo comercial</p><h2>Do primeiro contato à <span class="red">decisão final.</span></h2></div>
+    <div class="body"><div class="flow"><div class="card"><small>Entrada</small><h3>Novo lead</h3><p>Interessado envia contato pelo catálogo público.</p></div><div class="arrow">→</div><div class="card"><small>Distribuição</small><h3>Fila</h3><p>Dono atribui ou vendedor cadastrado assume.</p></div><div class="arrow">→</div><div class="card"><small>Trabalho</small><h3>Histórico</h3><p>Vendedor registra ligação, WhatsApp, e-mail e observação.</p></div><div class="arrow">→</div><div class="card red-card"><small>Resultado</small><h3>Status</h3><p>Atualização até ganho ou perdido, com motivo obrigatório para perda.</p></div></div><div class="statement">A API garante que <strong>somente vendedores</strong> atendam e que cada um altere os leads sob sua responsabilidade.</div></div><div class="foot"><span>Mesmo fluxo na web e no mobile</span><span>09</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">09 / Mobile</span></div>
+    <div class="section-head"><p class="eyebrow">App do vendedor</p><h2>Atendimento no bolso, conectado à <span class="red">mesma API.</span></h2></div>
+    <div class="body"><div class="grid three"><div class="card"><small>Entrada</small><h3>Login por e-mail</h3><p>Acesso restrito a vendedores ativos cadastrados pelo dono da loja.</p></div><div class="card"><small>Organização</small><h3>Fila e carteira</h3><p>Busca, filtros, assumir e devolver oportunidades.</p></div><div class="card red-card"><small>Atendimento</small><h3>Ficha do lead</h3><p>Contato, veículo, mensagens, atalhos, interações e atualização de status.</p></div></div><div class="statement">App em <strong>React Native/Expo</strong>. A instalação direta em Android usa um APK de build de distribuição interna.</div></div><div class="foot"><span>Mobile · Android primeiro</span><span>10</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">10 / Arquitetura</span></div>
+    <div class="section-head"><p class="eyebrow">Uma fonte de dados</p><h2>Quatro interfaces, <span class="red">um backend.</span></h2></div>
+    <div class="body"><div class="diagram"><div class="box">Web<span>Next.js 16</span></div><div class="box">Desktop<span>Electron</span></div><div class="box">Mobile<span>React Native / Expo</span></div><div class="arrow">→</div><div class="box" style="border-color:#d70025;background:#fff1f3">API REST<span>Fastify 5 · TypeScript</span></div><div class="arrow">→</div><div class="box">PostgreSQL<span>Prisma 7 · migrações</span></div></div><div class="grid two" style="margin-top:22px"><div class="card"><small>Autenticação</small><h3>JWT e permissões</h3><p>Login por e-mail; API valida papéis e escopo em cada operação sensível.</p></div><div class="card"><small>Separação</small><h3>Multiempresa</h3><p>Dados de cada loja associados à empresa; slug usado para identificar o catálogo público.</p></div></div></div><div class="foot"><span>API compartilhada por todos os clientes</span><span>11</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">11 / Personalização</span></div>
+    <div class="section-head"><p class="eyebrow">Marca da revendedora</p><h2>O Cartalog é vermelho. Cada loja pode ter sua <span class="red">própria identidade.</span></h2></div>
+    <div class="body"><div class="grid three"><div class="card"><small>Aparência</small><h3>Cores e tipografia</h3><p>Personalização do catálogo público com as escolhas da loja.</p></div><div class="card"><small>Conteúdo</small><h3>Banners e páginas</h3><p>Construtor de páginas públicas com blocos de abertura, texto, imagem e botão.</p></div><div class="card"><small>Presença</small><h3>Logo, contatos e SEO</h3><p>Informações principais da loja salvas na API e refletidas no site.</p></div></div></div><div class="foot"><span>Personalização controlada pelo dono</span><span>12</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">12 / Instalação</span></div>
+    <div class="section-head"><p class="eyebrow">Preparação para demonstrar</p><h2>O instalador entrega o app. A operação precisa de <span class="red">API e banco.</span></h2></div>
+    <div class="body"><div class="grid three"><div class="card"><small>Windows</small><h3>Desktop .exe</h3><p>Instala o cliente Electron. Ele se conecta à API; o arquivo sozinho não cria banco nem hospeda o sistema.</p></div><div class="card"><small>macOS</small><h3>Build para Mac</h3><p>O .exe não abre no Mac. Para apresentação, o projeto pode rodar pelo código com Node e Docker; distribuição requer pacote macOS.</p></div><div class="card red-card"><small>Android</small><h3>APK interno</h3><p>Build via EAS/Expo, enviado ao aparelho por link ou arquivo. O celular também precisa alcançar a API.</p></div></div><div class="statement"><strong>Setup da demonstração:</strong> PostgreSQL, migrações, administrador global e serviços locais em um roteiro repetível. Sem credenciais pessoais embutidas.</div></div><div class="foot"><span>Distribuição ≠ infraestrutura</span><span>13</span></div>
+  </section>
+  <section class="slide">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">13 / Demonstração</span></div>
+    <div class="section-head"><p class="eyebrow">Roteiro ao vivo</p><h2>Mostre o fluxo real em <span class="red">cinco passos.</span></h2></div>
+    <div class="body"><div class="grid five" style="grid-template-columns:repeat(5,minmax(0,1fr))"><div class="card"><div class="n">1</div><h3>Landing</h3><p>Enviar pedido de demonstração.</p></div><div class="card"><div class="n">2</div><h3>Global</h3><p>Criar ou abrir a empresa no painel Cartalog.</p></div><div class="card"><div class="n">3</div><h3>Desktop</h3><p>Configurar loja e vendedor.</p></div><div class="card"><div class="n">4</div><h3>Catálogo</h3><p>Ver veículo e gerar lead.</p></div><div class="card red-card"><div class="n">5</div><h3>Vendedor</h3><p>Assumir e atualizar na web ou no celular.</p></div></div><div class="statement">Teste <strong>login, API e rede do celular</strong> antes de começar a apresentação.</div></div><div class="foot"><span>Use dados de teste, sem senhas em slides</span><span>14</span></div>
+  </section>
+  <section class="slide dark">
+    <div class="top"><div class="brand"><img src="../web/public/brand/cartalog-mark.png" alt="">Cartalog</div><span class="eyebrow">Encerramento</span></div>
+    <div class="hero"><div><p class="eyebrow" style="margin-bottom:22px">Cartalog · 2026</p><h1>Da vitrine ao <span class="red">atendimento.</span></h1><p class="intro">Uma operação conectada para revendedoras: catálogo próprio, gestão central e vendedores com acesso onde trabalham.</p></div><img class="hero-mark" src="../web/public/brand/cartalog-mark.png" alt=""></div><div class="foot"><span>Obrigado!</span><span>15</span></div>
+  </section>
+</main>
+<nav class="controls" aria-label="Navegação dos slides"><button id="prev" aria-label="Slide anterior">‹</button><span id="counter">1 / 15</span><button id="next" aria-label="Próximo slide">›</button><button id="full" aria-label="Tela cheia">⛶</button></nav>
 <script>
-  const slides = Array.from(document.querySelectorAll('.slide'));
-  const dotsEl = document.getElementById('dots');
-  const counter = document.getElementById('counter');
-  const total = slides.length;
-  let current = 0;
-
-  slides.forEach((_, i) => {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === 0 ? ' active' : '');
-    d.addEventListener('click', () => goTo(i));
-    dotsEl.appendChild(d);
-  });
-
-  function goTo(n) {
-    slides[current].classList.remove('active');
-    dotsEl.children[current].classList.remove('active');
-    current = (n + total) % total;
-    slides[current].classList.add('active', 'fade-in');
-    dotsEl.children[current].classList.add('active');
-    counter.textContent = `${current + 1} / ${total}`;
-    setTimeout(() => slides[current].classList.remove('fade-in'), 500);
-  }
-
-  document.getElementById('next').addEventListener('click', () => goTo(current + 1));
-  document.getElementById('prev').addEventListener('click', () => goTo(current - 1));
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
-    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goTo(current - 1);
-    if (e.key === 'f' || e.key === 'F') document.documentElement.requestFullscreen?.();
-  });
+  const slides=[...document.querySelectorAll('.slide')];let current=0;
+  function go(n){slides[current].classList.remove('active');current=(n+slides.length)%slides.length;slides[current].classList.add('active');document.getElementById('counter').textContent=`${current+1} / ${slides.length}`;}
+  document.getElementById('prev').onclick=()=>go(current-1);
+  document.getElementById('next').onclick=()=>go(current+1);
+  document.getElementById('full').onclick=()=>document.documentElement.requestFullscreen?.();
+  document.addEventListener('keydown',event=>{if(['ArrowRight','PageDown',' '].includes(event.key)){event.preventDefault();go(current+1)}if(['ArrowLeft','PageUp'].includes(event.key)){event.preventDefault();go(current-1)}if(event.key.toLowerCase()==='f')document.documentElement.requestFullscreen?.()});
 </script>
 </body>
 </html>

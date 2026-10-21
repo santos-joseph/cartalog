@@ -38,6 +38,8 @@ npm run package:win
 
 O instalador Windows é gerado em `desktop/release/`. O pacote atual não é assinado digitalmente. Para distribuição pública, configure certificado de assinatura e um endereço de API HTTPS de produção.
 
+No macOS, gere o pacote no próprio Mac com `npm run package:mac`; o `.dmg` fica em `desktop/release/`. O instalador `.exe` só funciona no Windows. Ambos instalam apenas o cliente Electron e precisam da API e do banco ativos em um servidor. O roteiro local para a apresentação está em [APRESENTACAO.md](../APRESENTACAO.md).
+
 ## Segurança da sessão
 
 O Electron usa `contextIsolation` e sandbox. A interface recebe apenas funções específicas do processo principal; não recebe tokens nem acesso livre ao Node.js. O refresh token da loja ou token de acesso global é salvo criptografado com o cofre do sistema quando o Electron consegue usá-lo. Sem esse recurso, a sessão funciona até o app fechar; o token global expira em 8 horas.

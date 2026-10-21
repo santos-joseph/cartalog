@@ -13,7 +13,8 @@
     "start": "electron .",
     "smoke": "cross-env CARTALOG_SMOKE=1 electron .",
     "smoke:layout": "electron scripts/smoke-layout.cjs",
-    "package:win": "npm run icon && node scripts/build-installer-artwork.mjs && npm run build && electron-builder --win nsis"
+    "package:win": "npm run icon && node scripts/build-installer-artwork.mjs && npm run build && electron-builder --win nsis",
+    "package:mac": "npm run build && electron-builder --mac dmg"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -49,6 +50,11 @@
     "win": {
       "target": "nsis",
       "icon": "assets/cartalog.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/cartalog-mark.png",
+      "category": "public.app-category.business"
     },
     "nsis": {
       "oneClick": false,
