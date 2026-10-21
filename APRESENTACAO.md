@@ -25,13 +25,13 @@ Depois de criar o administrador global, entre pelo desktop ou por `http://localh
 
 | Destino | Arquivo/fluxo | O que instala |
 | --- | --- | --- |
-| Windows | `desktop/release/Cartalog-Desktop-Setup-0.1.1.exe` | Apenas o app desktop. Usa API local por padrão; para clientes reais, precisa da URL HTTPS da API central. O instalador atual não é assinado. |
+| Windows | `desktop/release/Cartalog-Desktop-Setup-0.1.2.exe` | Apenas o app desktop. Usa API local por padrão; para clientes reais, precisa da URL HTTPS da API central. O instalador atual não é assinado. |
 | macOS | `cd desktop && npm run package:mac` **no Mac** | Gera um `.dmg` em `desktop/release/`. O `.exe` do Windows não abre no Mac. Para distribuição pública no Mac, assinar e notarizar o app. |
-| Android | `cd mobile && npm run build:apk` | Solicita à EAS um APK de distribuição interna. Requer conta Expo autenticada e vínculo inicial do projeto. O link/arquivo produzido pode ser aberto no celular para instalar. |
+| Android | `mobile/release/Cartalog-Vendedor-1.0.0.apk` | APK já gerado para instalar no celular. Para gerar outro, execute `cd mobile && npm run build:apk` com a conta Expo autenticada. |
 
 O APK pode iniciar com endereço de API local inadequado para um celular físico. Na tela de login, abra **Configurar endereço da API** e informe `http://IP_DO_COMPUTADOR:3333` na mesma rede Wi-Fi. O firewall deve permitir acesso à porta 3333. Para uso fora da rede local, use uma API hospedada em HTTPS.
 
-Os instaladores em `desktop/release/` são artefatos gerados e não entram no Git. Ao levar o código para o Mac, gere o `.dmg` lá; se também quiser guardar o `.exe`, copie-o separadamente da máquina Windows.
+Os instaladores em `desktop/release/` e o APK em `mobile/release/` são artefatos gerados e não entram no Git. Ao levar o código para o Mac, gere o `.dmg` lá; copie o `.exe` e o `.apk` separadamente da máquina Windows se precisar deles na apresentação.
 
 ## Roteiro de ensaio
 

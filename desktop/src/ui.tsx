@@ -1,9 +1,22 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react'
+import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { X } from 'lucide-react'
 
 export function errorText(error: unknown) {
   const message = error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
   return message.replace(/^Error invoking remote method '[^']+': Error: /, '')
+}
+
+export function ApiConnection() {
+  const [online, setOnline] = useState<boolean | null>(null)
+  useEffect(() => {
+    let active = true
+    const check = () => { void window.cartalog.health().then((value) => { if (active) setOnline(value) }).catch(() => { if (active) setOnline(false) }) }
+    check()
+    const timer = window.setInterval(check, 15000)
+    window.addEventListener('focus', check)
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener('focus', check) }
+  }, [])
+  return <span className="api-connection" aria-live="polite"><span className={`connection-dot${online === false ? ' connection-dot-offline' : online === null ? ' connection-dot-checking' : ''}`} />{online === null ? 'Verificando API' : online ? 'API conectada' : 'API indisponível'}</span>
 }
 
 export function Button({ children, variant = 'primary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger' }) {

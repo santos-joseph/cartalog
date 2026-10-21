@@ -28,6 +28,8 @@ npm run dev
 
 Padrão: API em `http://127.0.0.1:3333` e web em `http://localhost:3000`. Para usar outros endereços, edite `CARTALOG_API_URL` e `CARTALOG_WEB_BASE_URL` em `desktop/.env`. Fora de `localhost`, é obrigatório HTTPS. Os endereços são lidos quando o Electron inicia; reinicie o app após alterá-los.
 
+Se o painel mostrar **API indisponível**, abra `http://127.0.0.1:3333/health` no mesmo computador. A resposta deve indicar `healthy`. Inicie a API e o PostgreSQL antes do desktop ou use `node scripts/demo.mjs start --desktop` após o setup descrito em [APRESENTACAO.md](../APRESENTACAO.md). O botão **Atualizar** repete o carregamento; as telas de administradores e auditoria são carregadas apenas quando abertas.
+
 ## Executar e gerar instalador
 
 ```powershell

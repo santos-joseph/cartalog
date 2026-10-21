@@ -80,6 +80,28 @@ function parseApiError(data, status) {
   return `A API respondeu com erro ${status}.`
 }
 
+async function requestWithRetry(url, options) {
+  const attempts = options.method === 'GET' ? 2 : 1
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await fetch(url, { ...options, signal: AbortSignal.timeout(20000) })
+    } catch (error) {
+      if (attempt + 1 < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        continue
+      }
+      if (error?.name === 'TimeoutError') {
+        const unavailable = new Error(`A API em ${apiOrigin} demorou para responder. Tente atualizar o painel.`)
+        unavailable.code = 'API_UNAVAILABLE'
+        throw unavailable
+      }
+      const unavailable = new Error(`Não foi possível conectar à API em ${apiOrigin}. Inicie a API e confira a conexão.`)
+      unavailable.code = 'API_UNAVAILABLE'
+      throw unavailable
+    }
+  }
+}
+
 async function apiRequest(endpoint, { method = 'GET', body, auth = true, retry = true } = {}) {
   const headers = { Accept: 'application/json' }
   if (auth) {
@@ -88,24 +110,19 @@ async function apiRequest(endpoint, { method = 'GET', body, auth = true, retry =
   }
   if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json'
 
-  let response
-  try {
-    response = await fetch(new URL(endpoint.replace(/^\//, ''), apiUrl), {
-      method,
-      headers,
-      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-      signal: AbortSignal.timeout(20000),
-    })
-  } catch {
-    throw new Error(`Não foi possível conectar à API em ${apiOrigin}. Confira se ela está rodando.`)
-  }
+  const response = await requestWithRetry(new URL(endpoint.replace(/^\//, ''), apiUrl), {
+    method,
+    headers,
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+  })
 
   if (response.status === 401 && auth && retry && refreshToken) {
     try {
       const refreshed = await apiRequest('auth/refresh', { method: 'POST', body: { refreshToken }, auth: false })
       accessToken = refreshed.accessToken
       return apiRequest(endpoint, { method, body, auth, retry: false })
-    } catch {
+    } catch (error) {
+      if (error?.code === 'API_UNAVAILABLE') throw error
       await forgetSession()
       throw new Error('Sua sessão terminou. Entre novamente.')
     }
@@ -121,15 +138,11 @@ async function platformRequest(endpoint, { method = 'GET', body, restoring = fal
   if (restoring && endpoint === 'me' && platformToken) {
     // A sessão criptografada ainda precisa ser validada antes de carregar o usuário.
   } else requirePlatform()
-  let response
-  try {
-    response = await fetch(new URL(`platform/${endpoint.replace(/^\//, '')}`, apiUrl), {
-      method,
-      headers: { Accept: 'application/json', Authorization: `Bearer ${platformToken}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(20000),
-    })
-  } catch { throw new Error(`Não foi possível conectar à API em ${apiOrigin}. Confira se ela está rodando.`) }
+  const response = await requestWithRetry(new URL(`platform/${endpoint.replace(/^\//, '')}`, apiUrl), {
+    method,
+    headers: { Accept: 'application/json', Authorization: `Bearer ${platformToken}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
   if (response.status === 401) { await forgetSession(); throw new Error('Sua sessão terminou. Entre novamente.') }
   if (response.status === 204) return null
   const data = await response.json().catch(() => null)
@@ -180,7 +193,8 @@ async function restoreSession() {
     currentCompany = { id: me.company.id, name: me.company.name, slug: me.company.slug }
     currentScope = 'company'
     return { scope: 'company', user: currentUser, company: currentCompany }
-  } catch {
+  } catch (error) {
+    if (error?.code === 'API_UNAVAILABLE') return null
     await forgetSession()
     return null
   }
@@ -249,6 +263,12 @@ function registerHandlers() {
   handle('window:close', () => { mainWindow.close(); return true })
   handle('window:isMaximized', () => mainWindow.isMaximized())
   handle('bootstrap', async () => ({ session: await restoreSession(), apiOrigin, webBaseUrl }))
+  handle('health', async () => {
+    try {
+      const response = await fetch(new URL('/health', apiOrigin), { signal: AbortSignal.timeout(4000) })
+      return response.ok
+    } catch { return false }
+  })
   handle('login', async (input) => {
     const body = assertObject(input)
     const result = await apiRequest('auth/desktop-login', { method: 'POST', body, auth: false })

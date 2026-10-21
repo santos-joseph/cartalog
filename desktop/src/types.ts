@@ -95,6 +95,7 @@ export interface CartalogBridge {
     onStateChange(callback: (maximized: boolean) => void): () => void
   }
   bootstrap(): Promise<Bootstrap>
+  health(): Promise<boolean>
   login(input: LoginInput): Promise<DesktopSession>
   logout(): Promise<true>
   platform: {

@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('cartalog', {
     },
   },
   bootstrap: () => invoke('bootstrap'),
+  health: () => invoke('health'),
   login: (input) => invoke('login', input),
   logout: () => invoke('logout'),
   platform: {

@@ -3,7 +3,7 @@ import { ArrowRight, BookOpenText, Building2, CarFront, ChevronDown, Copy, Layou
 import logo from '../assets/cartalog-logo.png'
 import logoWhite from '../assets/cartalog-logo-white.png'
 import type { Bootstrap, DesktopSession } from './types'
-import { errorText, Spinner } from './ui'
+import { ApiConnection, errorText, Spinner } from './ui'
 import { AuthPage } from './pages/AuthPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { TeamPage } from './pages/TeamPage'
@@ -82,7 +82,7 @@ export default function App() {
     </aside>
 
     <main className="main-panel">
-      <div className="topbar"><span>Cartalog <span className="breadcrumb-slash">/</span> {nav.find((item) => item.id === view)?.label}</span><div><span className="connection-dot" /> API conectada <span className="topbar-divider" /><span className="user-circle">{session.user.name.slice(0, 1).toUpperCase()}</span><strong>{session.user.name}</strong></div></div>
+      <div className="topbar"><span>Cartalog <span className="breadcrumb-slash">/</span> {nav.find((item) => item.id === view)?.label}</span><div><ApiConnection /><span className="topbar-divider" /><span className="user-circle">{session.user.name.slice(0, 1).toUpperCase()}</span><strong>{session.user.name}</strong></div></div>
       <div className="page-content">
         {view === 'overview' && <OverviewPage session={session} apiOrigin={bootstrap.apiOrigin} onNavigate={setView} notify={notify} />}
         {view === 'vehicles' && <VehiclesPage apiOrigin={bootstrap.apiOrigin} notify={notify} />}

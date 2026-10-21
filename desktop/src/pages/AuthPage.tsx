@@ -33,7 +33,7 @@ export function AuthPage({ apiOrigin, onAuth }: { apiOrigin: string; onAuth: (se
         <div className="form-stack"><Field label="Seu e-mail" type="email" placeholder="voce@empresa.com" autoComplete="email" required value={login.email} onChange={(e) => setLogin({ ...login, email: e.target.value })} /><div className="password-field"><Field label="Senha" type={showPassword ? 'text' : 'password'} placeholder="Sua senha" autoComplete="current-password" required value={login.password} onChange={(e) => setLogin({ ...login, password: e.target.value })} /><button type="button" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>
         {error && <div className="form-error" role="alert">{error}</div>}
         <Button type="submit" className="auth-submit" disabled={busy}>{busy ? 'Aguarde...' : 'Entrar no desktop'} <ArrowRight size={18} /></Button>
-      </form><p className="auth-api">Conectado à API em {apiOrigin}</p>
+      </form><p className="auth-api">Servidor configurado: {apiOrigin}</p>
     </div></div>
   </div>
 }
