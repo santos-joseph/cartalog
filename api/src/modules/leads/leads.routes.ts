@@ -4,6 +4,7 @@ import { createLeadSchema, updateLeadSchema, createInteractionSchema, leadsFilte
 import { authMiddleware, requireRole } from '../../shared/middlewares/auth.middleware'
 import { tenantMiddleware } from '../../shared/middlewares/tenant.middleware'
 import { AppError } from '../../shared/errors/app-error'
+import { writeStoreAudit } from '../../shared/audit/store-audit'
 
 export async function leadsRoutes(app: FastifyInstance) {
   // POST /leads/public — captura pública de leads (sem auth, empresa pelo subdomínio)
@@ -11,6 +12,9 @@ export async function leadsRoutes(app: FastifyInstance) {
     if (request.tenant.siteSettings?.maintenanceEnabled) throw new AppError('Este site está temporariamente em manutenção.', 503)
     const body = createLeadSchema.parse(request.body)
     const lead = await leadsService.create(request.tenant.id, body)
+    try {
+      await writeStoreAudit({ companyId: request.tenant.id, actorName: 'Visitante', action: 'lead_created_public', target: `lead:${lead.id}` })
+    } catch (error) { request.log.error({ err: error }, 'Failed to save public lead audit event') }
     return reply.status(201).send({ message: 'Lead received', id: lead.id })
   })
 

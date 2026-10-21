@@ -36,6 +36,6 @@ export async function platformAuth(request: FastifyRequest) {
   request.platformUser = { id: user.id, name: user.name, email: user.email, role: user.role }
 }
 
-export function requirePlatformOwner(request: FastifyRequest) {
+export async function requirePlatformOwner(request: FastifyRequest) {
   if (request.platformUser.role !== 'PLATFORM_OWNER') throw new ForbiddenError('Apenas o dono da plataforma pode alterar administradores')
 }

@@ -17,6 +17,7 @@
     "platform:bootstrap": "tsx src/scripts/bootstrap-platform-owner.ts",
     "smoke:maintenance": "tsx src/scripts/smoke-maintenance.ts",
     "smoke:email-login": "tsx src/scripts/smoke-email-login.ts",
+    "smoke:platform-audit": "tsx src/scripts/smoke-platform-audit.ts",
     "demo:retry-emails": "tsx src/scripts/retry-demo-emails.ts",
     "db:reset": "prisma migrate reset",
     "lint": "eslint src --ext .ts",

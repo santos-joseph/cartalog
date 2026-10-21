@@ -286,7 +286,12 @@ function registerHandlers() {
   handle('platform:admins', () => platformRequest('admins'))
   handle('platform:createAdmin', (input) => platformRequest('admins', { method: 'POST', body: assertObject(input) }))
   handle('platform:setAdminActive', (id, input) => platformRequest(`admins/${requireId(id)}/active`, { method: 'PATCH', body: assertObject(input) }))
-  handle('platform:audit', () => platformRequest('audit'))
+  handle('platform:audit', (options = {}) => {
+    const params = new URLSearchParams()
+    if (typeof options?.before === 'string') params.set('before', options.before)
+    if (typeof options?.companyId === 'string') params.set('companyId', options.companyId)
+    return platformRequest(`audit?${params}`)
+  })
   handle('catalog:open', async () => {
     requireOwner()
     if (!/^[a-z0-9-]+$/.test(currentCompany.slug)) throw new Error('Endereço da loja inválido.')

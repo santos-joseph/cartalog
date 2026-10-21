@@ -13,7 +13,8 @@ export type PlatformPlan = { id: string; code: string; name: string; priceCents:
 export type PlatformSubscription = { planId: string; status: string; currentPeriodEnd: string | null; notes: string | null; plan: PlatformPlan }
 export type PlatformCompany = { id: string; name: string; slug: string; email: string; createdAt: string; users: { name: string; email: string }[]; subscription: PlatformSubscription | null; siteSettings: { maintenanceEnabled: boolean } | null; _count: { vehicles: number; leads: number; users: number } }
 export type DemoRequest = { id: string; name: string; email: string; companyName?: string | null; phone?: string | null; message?: string | null; createdAt: string }
-export type PlatformAudit = { id: string; action: string; target: string; createdAt: string; actor: { name: string; email: string } }
+export type PlatformAudit = { id: string; scope: 'platform' | 'store'; action: string; target: string; createdAt: string; actor: { name: string; email: string | null }; company: { id: string; name: string } | null }
+export type PlatformAuditPage = { data: PlatformAudit[]; nextCursor: string | null }
 export type PlatformCompanyInput = { companyName: string; companyEmail: string; companyPhone?: string; userName: string; userEmail: string; password: string; planId?: string }
 export type PlatformPlanInput = { code: string; name: string; priceCents: number; billingInterval: 'monthly' | 'yearly'; isActive: boolean }
 export type PlatformSubscriptionInput = { planId: string; status: 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled'; currentPeriodEnd: string | null; notes: string | null }
@@ -110,7 +111,7 @@ export interface CartalogBridge {
     admins(): Promise<PlatformUser[]>
     createAdmin(input: { name: string; email: string; password: string }): Promise<PlatformUser>
     setAdminActive(id: string, input: { isActive: boolean }): Promise<PlatformUser>
-    audit(): Promise<PlatformAudit[]>
+    audit(options?: { before?: string; companyId?: string }): Promise<PlatformAuditPage>
   }
   catalog: { open(): Promise<true> }
   team: {

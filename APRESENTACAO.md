@@ -25,7 +25,7 @@ Depois de criar o administrador global, entre pelo desktop ou por `http://localh
 
 | Destino | Arquivo/fluxo | O que instala |
 | --- | --- | --- |
-| Windows | `desktop/release/Cartalog-Desktop-Setup-0.1.3.exe` | Apenas o app desktop. Usa API local por padrão; para clientes reais, precisa da URL HTTPS da API central. O instalador atual não é assinado. |
+| Windows | `desktop/release/Cartalog-Desktop-Setup-0.1.4.exe` | Apenas o app desktop. Usa API local por padrão; para clientes reais, precisa da URL HTTPS da API central. O instalador atual não é assinado. |
 | macOS | `cd desktop && npm run package:mac` **no Mac** | Gera um `.dmg` em `desktop/release/`. O `.exe` do Windows não abre no Mac. Para distribuição pública no Mac, assinar e notarizar o app. |
 | Android | `mobile/release/Cartalog-Vendedor-1.0.0.apk` | APK já gerado para instalar no celular. Para gerar outro, execute `cd mobile && npm run build:apk` com a conta Expo autenticada. |
 
@@ -37,6 +37,7 @@ Os instaladores em `desktop/release/` e o APK em `mobile/release/` são artefato
 
 1. Abra `http://localhost:3333/health`, `http://localhost:3000` e o desktop. Verifique os três antes de mostrar.
 2. Entre como administrador global e confira empresa, assinatura e conta do dono.
+   Em **Administradores**, confirme os acessos globais; em **Auditoria**, filtre atividades por loja e carregue páginas anteriores. A nova trilha das lojas começa após aplicar a migração `20261021140000_store_audit_logs`.
 3. No desktop, mostre vendedor, cadastro de veículo, personalização/páginas e manutenção do catálogo.
 4. Na web, abra o catálogo da loja, gere um lead de teste e acompanhe no dashboard.
 5. Entre como vendedor na web ou no Android, assuma o lead, registre uma interação e atualize o status.

@@ -6,7 +6,7 @@ import { prisma } from '../../database/prisma'
 import { authService } from '../auth/auth.service'
 import { registerSchema } from '../auth/auth.schema'
 import { platformAuth, platformLogin, requirePlatformOwner } from './platform.auth'
-import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../../shared/errors/app-error'
+import { ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../../shared/errors/app-error'
 
 const uuid = z.uuid()
 const password = z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/)
@@ -146,6 +146,45 @@ export async function platformRoutes(app: FastifyInstance) {
       return admin
     })
 
-    privateApp.get('/audit', { onRequest: [requirePlatformOwner] }, async () => prisma.platformAuditLog.findMany({ orderBy: { createdAt: 'desc' }, take: 100, include: { actor: { select: { name: true, email: true } } } }))
+    privateApp.get('/audit', { onRequest: [requirePlatformOwner] }, async (request) => {
+      const input = z.object({
+        companyId: uuid.optional(),
+        before: z.string().optional(),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+      }).parse(request.query)
+      let cursor: { createdAt: Date; id: string } | undefined
+      if (input.before) {
+        try {
+          const parsed = z.object({ createdAt: z.iso.datetime(), id: uuid }).parse(JSON.parse(Buffer.from(input.before, 'base64url').toString()))
+          cursor = { createdAt: new Date(parsed.createdAt), id: parsed.id }
+        } catch { throw new ValidationError('Cursor de auditoria inválido') }
+      }
+      const older = cursor ? { OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }] } : {}
+      const [platformLogs, storeLogs] = await Promise.all([
+        prisma.platformAuditLog.findMany({
+          where: { ...older, ...(input.companyId ? { target: `company:${input.companyId}` } : {}) },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: input.limit + 1,
+          include: { actor: { select: { name: true, email: true } } },
+        }),
+        prisma.storeAuditLog.findMany({
+          where: { ...older, ...(input.companyId ? { companyId: input.companyId } : {}) },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: input.limit + 1,
+          include: { company: { select: { id: true, name: true } } },
+        }),
+      ])
+      const companyIds = platformLogs.map((log) => log.target.startsWith('company:') ? log.target.slice(8) : '').filter((id) => uuid.safeParse(id).success)
+      const companies = companyIds.length ? await prisma.company.findMany({ where: { id: { in: companyIds } }, select: { id: true, name: true } }) : []
+      const companyById = new Map(companies.map((company) => [company.id, company]))
+      const merged = [
+        ...platformLogs.map((log) => ({ id: log.id, scope: 'platform' as const, action: log.action, target: log.target, createdAt: log.createdAt, actor: log.actor, company: companyById.get(log.target.slice(8)) || null })),
+        ...storeLogs.map((log) => ({ id: log.id, scope: 'store' as const, action: log.action, target: log.target, createdAt: log.createdAt, actor: { name: log.actorName, email: log.actorEmail }, company: log.company })),
+      ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id))
+      const data = merged.slice(0, input.limit)
+      const last = data.at(-1)
+      return {
+        data,
+        nextCursor: merged.length > input.limit && last ? Buffer.from(JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id })).toString('base64url') : null,
+      }
+    })
   })
 }

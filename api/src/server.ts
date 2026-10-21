@@ -19,6 +19,7 @@ import { catalogRoutes } from './modules/catalog/catalog.routes'
 import { usersRoutes } from './modules/users/users.routes'
 import { demoRoutes } from './modules/demo/demo.routes'
 import { platformRoutes } from './modules/platform/platform.routes'
+import { auditStoreResponse } from './shared/audit/store-audit'
 
 const app = Fastify({
   trustProxy: env.TRUST_PROXY,
@@ -32,6 +33,7 @@ const app = Fastify({
 })
 
 async function bootstrap() {
+  app.addHook('onSend', auditStoreResponse)
   // ---- Plugins ----
   await app.register(cors, {
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

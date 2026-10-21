@@ -11,6 +11,18 @@ const statuses: Record<PlatformSubscriptionInput['status'], string> = { trialing
 const money = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = (value: string) => new Date(value).toLocaleDateString('pt-BR')
 const emptyCompany = { companyName: '', companyEmail: '', companyPhone: '', userName: '', userEmail: '', password: '', planId: '' }
+const auditLabels: Record<string, string> = {
+  company_created: 'Empresa criada', plan_created: 'Plano criado', plan_updated: 'Plano atualizado', subscription_updated: 'Assinatura atualizada',
+  admin_created: 'Administrador criado', admin_activated: 'Administrador ativado', admin_deactivated: 'Administrador desativado',
+  password_changed: 'Senha alterada', maintenance_updated: 'Manutenção do site alterada', logo_updated: 'Logo da loja alterado', store_settings_updated: 'Configurações da loja alteradas',
+  category_created: 'Categoria criada', category_updated: 'Categoria atualizada', category_deleted: 'Categoria excluída',
+  banner_created: 'Banner criado', banner_updated: 'Banner atualizado', banner_deleted: 'Banner excluído', banner_image_uploaded: 'Imagem do banner enviada',
+  page_created: 'Página criada', page_updated: 'Página atualizada', page_deleted: 'Página excluída', page_image_uploaded: 'Imagem da página enviada',
+  vehicle_created: 'Veículo cadastrado', vehicle_updated: 'Veículo atualizado', vehicle_deleted: 'Veículo excluído', vehicle_images_uploaded: 'Fotos do veículo enviadas', vehicle_image_deleted: 'Foto do veículo excluída', vehicle_cover_updated: 'Capa do veículo alterada',
+  seller_created: 'Vendedor cadastrado', seller_updated: 'Vendedor atualizado', seller_deactivated: 'Vendedor desativado', seller_reactivated: 'Vendedor reativado',
+  lead_created: 'Lead cadastrado', lead_created_public: 'Lead enviado pelo site', lead_updated: 'Lead atualizado', lead_status_changed: 'Status do lead alterado', lead_assignment_updated: 'Vendedor do lead alterado', lead_claimed: 'Lead assumido', lead_released: 'Lead devolvido à fila', lead_interaction_added: 'Interação com lead registrada',
+  lead_status_created: 'Status de lead criado', lead_status_updated: 'Status de lead atualizado', lead_status_deleted: 'Status de lead excluído',
+}
 
 export function PlatformPage({ session, onLogout, loggingOut, notify, notice }: {
   session: PlatformDesktopSession
@@ -26,6 +38,9 @@ export function PlatformPage({ session, onLogout, loggingOut, notify, notice }: 
   const [requests, setRequests] = useState<DemoRequest[]>([])
   const [admins, setAdmins] = useState<PlatformUser[]>([])
   const [audit, setAudit] = useState<PlatformAudit[]>([])
+  const [auditCompanyId, setAuditCompanyId] = useState('')
+  const [auditNextCursor, setAuditNextCursor] = useState<string | null>(null)
+  const [auditLoadingMore, setAuditLoadingMore] = useState(false)
   const [subscriptions, setSubscriptions] = useState<Record<string, SubscriptionForm>>({})
   const [companyForm, setCompanyForm] = useState(emptyCompany)
   const [planForm, setPlanForm] = useState({ code: '', name: '', price: '', billingInterval: 'monthly' as 'monthly' | 'yearly' })
@@ -50,11 +65,15 @@ export function PlatformPage({ session, onLogout, loggingOut, notify, notice }: 
         notes: store.subscription?.notes || '',
       }])))
       if (session.user.role === 'PLATFORM_OWNER' && tab === 'admins') setAdmins(await api.admins())
-      if (session.user.role === 'PLATFORM_OWNER' && tab === 'audit') setAudit(await api.audit())
+      if (session.user.role === 'PLATFORM_OWNER' && tab === 'audit') {
+        const page = await api.audit({ companyId: auditCompanyId || undefined })
+        setAudit(page.data)
+        setAuditNextCursor(page.nextCursor)
+      }
     } catch (error) {
       setLoadError(errorText(error))
     } finally { setLoading(false) }
-  }, [session.user.role, tab])
+  }, [session.user.role, tab, auditCompanyId])
 
   useEffect(() => { void load() }, [load])
 
@@ -63,6 +82,17 @@ export function PlatformPage({ session, onLogout, loggingOut, notify, notice }: 
     try { await task(); notify(message); await load() }
     catch (error) { notify(errorText(error), 'error') }
     finally { setBusy(false) }
+  }
+
+  async function loadMoreAudit() {
+    if (!auditNextCursor || auditLoadingMore) return
+    setAuditLoadingMore(true)
+    try {
+      const page = await window.cartalog.platform.audit({ before: auditNextCursor, companyId: auditCompanyId || undefined })
+      setAudit((current) => [...current, ...page.data])
+      setAuditNextCursor(page.nextCursor)
+    } catch (error) { notify(errorText(error), 'error') }
+    finally { setAuditLoadingMore(false) }
   }
 
   function openCompanyForm() {
@@ -161,8 +191,15 @@ export function PlatformPage({ session, onLogout, loggingOut, notify, notice }: 
             <div className="platform-stack">{companies.map((company) => <section className="panel platform-card" key={company.id}><div className="platform-company-head"><div><h2>{company.name}</h2><p>{company.email} · Criada em {date(company.createdAt)}</p></div><div className="platform-company-count">{company._count.vehicles} veículos · {company._count.leads} leads · {company._count.users} usuários</div></div><p><strong>Dono:</strong> {company.users[0]?.name || '—'} · {company.users[0]?.email || '—'}{company.siteSettings?.maintenanceEnabled && <span className="platform-maintenance">Site em manutenção</span>}</p><div className="platform-form-grid platform-subscription"><label className="field"><span className="field-label">Plano</span><select value={subscriptions[company.id]?.planId || ''} onChange={(e) => changeSubscription(company.id, { planId: e.target.value })}><option value="">Selecionar</option>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label><label className="field"><span className="field-label">Situação</span><select value={subscriptions[company.id]?.status || 'trialing'} onChange={(e) => changeSubscription(company.id, { status: e.target.value as SubscriptionForm['status'] })}>{Object.entries(statuses).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><Field label="Fim do período" type="date" value={subscriptions[company.id]?.end || ''} onChange={(e) => changeSubscription(company.id, { end: e.target.value })} /><Field label="Observação" maxLength={1000} value={subscriptions[company.id]?.notes || ''} onChange={(e) => changeSubscription(company.id, { notes: e.target.value })} /></div><Button type="button" disabled={busy || !plans.length} onClick={() => updateSubscription(company.id)}>Salvar assinatura</Button></section>)}{!companies.length && <p className="panel platform-empty">Nenhuma empresa cadastrada.</p>}</div></>}
           {tab === 'plans' && <div className="platform-two-columns"><form className="panel platform-card platform-form" onSubmit={createPlan}><h2>Novo plano</h2><Field label="Código" pattern="[a-z0-9-]{2,50}" placeholder="profissional" required value={planForm.code} onChange={(e) => setPlanForm({ ...planForm, code: e.target.value })} /><Field label="Nome" required value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} /><Field label="Preço em R$" type="number" min="0" step="0.01" required value={planForm.price} onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })} /><label className="field"><span className="field-label">Cobrança</span><select value={planForm.billingInterval} onChange={(e) => setPlanForm({ ...planForm, billingInterval: e.target.value as 'monthly' | 'yearly' })}><option value="monthly">Mensal</option><option value="yearly">Anual</option></select></label><Button type="submit" disabled={busy}>Criar plano</Button></form><div className="platform-stack">{plans.map((plan) => <div className="panel platform-card platform-plan" key={plan.id}><span><small>{plan.code}</small><h2>{plan.name}</h2><p>{plan._count?.subscriptions || 0} empresas · {plan.billingInterval === 'yearly' ? 'Anual' : 'Mensal'}</p></span><span><strong>{money(plan.priceCents)}</strong><button type="button" disabled={busy} onClick={() => void action(() => window.cartalog.platform.updatePlan(plan.id, { isActive: !plan.isActive }), 'Plano atualizado.')}>{plan.isActive ? 'Desativar' : 'Ativar'}</button></span></div>)}{!plans.length && <p className="panel platform-empty">Nenhum plano cadastrado.</p>}</div></div>}
           {tab === 'requests' && <div className="platform-two-columns">{requests.map((request) => <article className="panel platform-card" key={request.id}><div className="platform-company-head"><h2>{request.name}</h2><small>{date(request.createdAt)}</small></div><p>{request.companyName || 'Empresa não informada'}</p><p><strong>E-mail:</strong> {request.email}</p>{request.phone && <p><strong>Telefone:</strong> {request.phone}</p>}{request.message && <p>{request.message}</p>}</article>)}{!requests.length && <p className="panel platform-empty">Nenhuma demonstração solicitada.</p>}</div>}
-          {tab === 'admins' && session.user.role === 'PLATFORM_OWNER' && <div className="platform-two-columns"><form className="panel platform-card platform-form" onSubmit={createAdmin} autoComplete="off"><h2>Novo administrador</h2><Field label="Nome" required value={adminForm.name} onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })} /><Field label="E-mail" type="email" required value={adminForm.email} onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })} /><Field label="Senha temporária" type="password" minLength={8} required value={adminForm.password} onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })} /><Button type="submit" disabled={busy}>Adicionar administrador</Button></form><div className="platform-stack">{admins.map((admin) => <div className="panel platform-card platform-plan" key={admin.id}><span><h2>{admin.name}</h2><p>{admin.email}</p><small>{admin.role === 'PLATFORM_OWNER' ? 'Administrador principal' : 'Administrador'} · {admin.isActive ? 'Ativo' : 'Inativo'}</small></span>{admin.role !== 'PLATFORM_OWNER' && <button type="button" disabled={busy} onClick={() => void action(() => window.cartalog.platform.setAdminActive(admin.id, { isActive: !admin.isActive }), 'Acesso atualizado.')}>{admin.isActive ? 'Desativar' : 'Reativar'}</button>}</div>)}</div></div>}
-          {tab === 'audit' && session.user.role === 'PLATFORM_OWNER' && <section className="panel platform-card">{audit.map((entry) => <div className="platform-list-row" key={entry.id}><span><strong>{entry.action.replaceAll('_', ' ')}</strong><small>{entry.target} · {entry.actor.email}</small></span><em>{new Date(entry.createdAt).toLocaleString('pt-BR')}</em></div>)}{!audit.length && <p>Sem eventos registrados.</p>}</section>}
+          {tab === 'admins' && session.user.role === 'PLATFORM_OWNER' && <div className="platform-two-columns"><form className="panel platform-card platform-form" onSubmit={createAdmin} autoComplete="off"><h2>Novo administrador</h2><Field label="Nome" required value={adminForm.name} onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })} /><Field label="E-mail" type="email" required value={adminForm.email} onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })} /><Field label="Senha temporária" hint="Mínimo de 8 caracteres, uma letra maiúscula e um número." type="password" minLength={8} required value={adminForm.password} onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })} /><Button type="submit" disabled={busy}>Adicionar administrador</Button></form><div className="platform-stack">{admins.map((admin) => <div className="panel platform-card platform-plan" key={admin.id}><span><h2>{admin.name}</h2><p>{admin.email}</p><small>{admin.role === 'PLATFORM_OWNER' ? 'Administrador principal' : 'Administrador'} · {admin.isActive ? 'Ativo' : 'Inativo'}</small></span>{admin.role !== 'PLATFORM_OWNER' && <button type="button" disabled={busy} onClick={() => void action(() => window.cartalog.platform.setAdminActive(admin.id, { isActive: !admin.isActive }), 'Acesso atualizado.')}>{admin.isActive ? 'Desativar' : 'Reativar'}</button>}</div>)}</div></div>}
+          {tab === 'audit' && session.user.role === 'PLATFORM_OWNER' && <section className="panel platform-card platform-audit-panel">
+            <div className="platform-audit-heading"><div><h2>Histórico de atividades</h2><p>Ações do Cartalog e das lojas, com o autor de cada alteração.</p></div><label className="field"><span className="field-label">Filtrar por loja</span><select value={auditCompanyId} onChange={(event) => setAuditCompanyId(event.target.value)}><option value="">Todas as lojas</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label></div>
+            <div className="platform-audit-list">{audit.map((entry) => <div className="platform-audit-row" key={`${entry.scope}:${entry.id}`}>
+              <div><strong>{auditLabels[entry.action] || entry.action.replaceAll('_', ' ')}</strong><span>{entry.company?.name || 'Plataforma Cartalog'} · {entry.actor.name}{entry.actor.email ? ` (${entry.actor.email})` : ''}</span><small>{entry.target}</small></div>
+              <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString('pt-BR')}</time>
+            </div>)}{!audit.length && <p className="platform-audit-empty">Nenhuma atividade registrada para este filtro.</p>}</div>
+            {auditNextCursor && <Button type="button" variant="secondary" disabled={auditLoadingMore} onClick={() => void loadMoreAudit()}>{auditLoadingMore ? 'Carregando...' : 'Carregar atividades anteriores'}</Button>}
+          </section>}
         </>}
       </div>
     </main>

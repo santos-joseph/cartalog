@@ -12,6 +12,8 @@ declare module '@fastify/jwt' {
       sub: string
       companyId: string
       role: string
+      name?: string
+      email?: string
     }
   }
 }

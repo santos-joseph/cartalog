@@ -55,6 +55,24 @@ model PlatformAuditLog {
   @@map("platform_audit_logs")
 }
 
+model StoreAuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId  String   @map("company_id") @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  actorName  String   @map("actor_name") @db.VarChar(100)
+  actorEmail String?  @map("actor_email") @db.VarChar(255)
+  action     String   @db.VarChar(80)
+  target     String   @db.VarChar(120)
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([createdAt, id])
+  @@index([companyId, createdAt])
+  @@map("store_audit_logs")
+}
+
 model Plan {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   code            String   @unique @db.VarChar(50)
@@ -133,6 +151,7 @@ model Company {
   searches         Search[]
   subscription     CompanySubscription?
   maintenanceEvents SiteMaintenanceEvent[]
+  auditLogs         StoreAuditLog[]
 
   @@map("companies")
 }

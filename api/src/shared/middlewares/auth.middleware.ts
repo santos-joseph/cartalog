@@ -8,9 +8,9 @@ export async function authMiddleware(request: FastifyRequest, reply: FastifyRepl
   } catch {
     throw new UnauthorizedError('Missing or invalid token')
   }
-  const user = await prisma.user.findUnique({ where: { id: request.user.sub }, select: { id: true, companyId: true, role: true, isActive: true } })
+  const user = await prisma.user.findUnique({ where: { id: request.user.sub }, select: { id: true, companyId: true, role: true, name: true, email: true, isActive: true } })
   if (!user || !user.isActive || user.companyId !== request.user.companyId) throw new UnauthorizedError('Account no longer available')
-  request.user = { sub: user.id, companyId: user.companyId, role: user.role }
+  request.user = { sub: user.id, companyId: user.companyId, role: user.role, name: user.name, email: user.email }
 }
 
 export function requireRole(...roles: string[]) {

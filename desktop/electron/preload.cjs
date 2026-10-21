@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('cartalog', {
     admins: () => invoke('platform:admins'),
     createAdmin: (input) => invoke('platform:createAdmin', input),
     setAdminActive: (id, input) => invoke('platform:setAdminActive', id, input),
-    audit: () => invoke('platform:audit'),
+    audit: (options) => invoke('platform:audit', options),
   },
   catalog: { open: () => invoke('catalog:open') },
   team: {
