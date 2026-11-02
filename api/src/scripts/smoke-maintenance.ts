@@ -45,6 +45,7 @@ async function main() {
     assert.equal(response.status, 200, 'catálogo volta ao ar')
     console.log('SMOKE_MAINTENANCE_OK')
   } finally {
+    await prisma.storeAuditLog.deleteMany({ where: { companyId } })
     await prisma.siteMaintenanceEvent.deleteMany({ where: { companyId } })
     await prisma.user.deleteMany({ where: { companyId } })
     await prisma.leadStatus.deleteMany({ where: { companyId } })

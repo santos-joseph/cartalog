@@ -11,8 +11,10 @@ const optionalText = z.preprocess(
   z.string().optional(),
 )
 
-export const createVehicleSchema = z.object({
-  modelId: z.string().min(1),
+const vehicleFields = z.object({
+  modelId: z.string().min(1).optional(),
+  brandId: z.string().min(1).optional(),
+  modelName: z.string().trim().min(1).max(120).optional(),
   categoryId: optionalId,
   fuelId: optionalId,
   transmissionId: optionalId,
@@ -25,17 +27,25 @@ export const createVehicleSchema = z.object({
   status: z.enum(['available', 'reserved', 'sold']).default('available'),
 })
 
+export const createVehicleSchema = vehicleFields.refine(
+  (value) => Boolean(value.modelId || (value.brandId && value.modelName)),
+  { message: 'Informe a marca e o modelo', path: ['modelName'] },
+)
+
 // Na edição, selecionar "Não informado" deve limpar a relação já salva.
 const clearableId = z.preprocess(
   (v) => (v === '' ? null : v),
   z.string().min(1).nullable().optional(),
 )
 
-export const updateVehicleSchema = createVehicleSchema.partial().extend({
+export const updateVehicleSchema = vehicleFields.partial().extend({
   categoryId: clearableId,
   fuelId: clearableId,
   transmissionId: clearableId,
-})
+}).refine(
+  (value) => !value.brandId && !value.modelName || Boolean(value.brandId && value.modelName),
+  { message: 'Informe a marca e o modelo juntos', path: ['modelName'] },
+)
 
 export const vehicleFiltersSchema = z.object({
   page: z.coerce.number().min(1).default(1),

@@ -79,7 +79,13 @@ export class LeadsService {
     if (role === 'SELLER' && lead.assignedUserId && lead.assignedUserId !== userId) {
       throw new ForbiddenError('Lead belongs to another seller')
     }
-    return lead
+    const auditEvents = await prisma.storeAuditLog.findMany({
+      where: { companyId, target: `lead:${leadId}` },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: { id: true, action: true, actorName: true, createdAt: true },
+    })
+    return { ...lead, auditEvents }
   }
 
   async create(companyId: string, input: CreateLeadInput) {
@@ -213,8 +219,9 @@ export class LeadsService {
   }
 
   async getStats(companyId: string) {
-    const [total, statuses, recentLeads] = await Promise.all([
+    const [total, queue, statuses, recentLeads] = await Promise.all([
       prisma.lead.count({ where: { companyId } }),
+      prisma.lead.count({ where: { companyId, assignedUserId: null, OR: [{ statusId: null }, { status: { kind: 'open' } }] } }),
 
       prisma.leadStatus.findMany({
         where: { companyId },
@@ -238,9 +245,11 @@ export class LeadsService {
       byStatus: statuses.map((s) => ({
         id: s.id,
         name: s.name,
+        kind: s.kind,
         position: s.position,
         count: s._count.leads,
       })),
+      queue,
       recentLeads,
     }
   }

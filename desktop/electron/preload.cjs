@@ -40,6 +40,13 @@ contextBridge.exposeInMainWorld('cartalog', {
     deactivate: (id) => invoke('team:deactivate', id),
     reactivate: (id) => invoke('team:reactivate', id),
   },
+  leads: {
+    list: (filters) => invoke('leads:list', filters),
+    get: (id) => invoke('leads:get', id),
+    stats: () => invoke('leads:stats'),
+    statuses: () => invoke('leads:statuses'),
+    assign: (id, assignedUserId) => invoke('leads:assign', id, assignedUserId),
+  },
   company: { get: () => invoke('company:get') },
   settings: {
     get: () => invoke('settings:get'),

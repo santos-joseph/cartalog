@@ -24,6 +24,7 @@ export default function DashboardPage() {
   if (isError || !data) return <div className="rounded-[28px] border border-border bg-white p-10"><h1 className="text-xl font-semibold">Não foi possível carregar o painel</h1><p className="mt-2 text-sm text-muted-foreground">Atualize a página para tentar novamente.</p></div>
 
   const openLeads = data.leads.byStatus.filter((status) => status.kind === 'open').reduce((sum, status) => sum + status.count, 0)
+  const wonLeads = data.leads.byStatus.filter((status) => status.kind === 'won').reduce((sum, status) => sum + status.count, 0)
   const maxStage = Math.max(1, ...data.leads.byStatus.map((status) => status.count))
 
   return <div className="space-y-8">
@@ -45,11 +46,12 @@ export default function DashboardPage() {
       </section>
     </div>
 
-    <div className="grid gap-5 sm:grid-cols-3">
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
       {[
         { label: 'Disponíveis', value: data.vehicles.available, detail: 'veículos prontos para venda', icon: CarFront },
         { label: 'Reservados', value: data.vehicles.reserved, detail: 'aguardando conclusão', icon: CircleDot },
-        { label: 'Vendidos', value: data.vehicles.sold, detail: 'negócios concluídos', icon: TrendingUp },
+        { label: 'Veículos vendidos', value: data.vehicles.sold, detail: 'marcados como vendidos no estoque', icon: CarFront },
+        { label: 'Negócios fechados', value: wonLeads, detail: 'leads com venda ganha', icon: TrendingUp },
       ].map(({ label, value, detail, icon: Icon }) => <div key={label} className="rounded-[26px] border border-border bg-white p-6"><div className="flex items-center justify-between"><span className="text-sm font-medium text-muted-foreground">{label}</span><Icon size={18} className="text-primary" /></div><div className="mt-6 text-[3.3rem] font-semibold leading-none tracking-[-.07em]">{value}</div><p className="mt-2 text-xs text-muted-foreground">{detail}</p></div>)}
     </div>
 

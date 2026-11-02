@@ -43,6 +43,7 @@ export class CompaniesService {
       email: company.email || null,
       showPrices: siteSettings?.showPrices ?? true,
       showWhatsappButton: siteSettings?.showWhatsappButton ?? true,
+      showStoreNameWithLogo: siteSettings?.showStoreNameWithLogo ?? true,
       backgroundColor: siteSettings?.backgroundColor || '#fbfbfd',
       fontFamily: siteSettings?.fontFamily || 'sans',
       homeHeadline: siteSettings?.homeHeadline ?? null,
@@ -61,7 +62,7 @@ export class CompaniesService {
   async updateSettings(companyId: string, input: UpdateSettingsInput) {
     const {
       primaryColor, secondaryColor, whatsapp, phone, email,
-      showPrices, showWhatsappButton, backgroundColor, fontFamily, homeHeadline, homeSubheadline, showHomeStats,
+      showPrices, showWhatsappButton, showStoreNameWithLogo, backgroundColor, fontFamily, homeHeadline, homeSubheadline, showHomeStats,
       siteTitle, siteDescription, siteKeywords,
       address, city, state, zipCode,
     } = input
@@ -83,13 +84,14 @@ export class CompaniesService {
         update: {
           ...(showPrices !== undefined && { showPrices }),
           ...(showWhatsappButton !== undefined && { showWhatsappButton }),
+          ...(showStoreNameWithLogo !== undefined && { showStoreNameWithLogo }),
           ...(backgroundColor !== undefined && { backgroundColor }),
           ...(fontFamily !== undefined && { fontFamily }),
           ...(homeHeadline !== undefined && { homeHeadline }),
           ...(homeSubheadline !== undefined && { homeSubheadline }),
           ...(showHomeStats !== undefined && { showHomeStats }),
         },
-        create: { companyId, showPrices: showPrices ?? true, showWhatsappButton: showWhatsappButton ?? true, backgroundColor: backgroundColor ?? '#fbfbfd', fontFamily: fontFamily ?? 'sans', homeHeadline: homeHeadline ?? null, homeSubheadline: homeSubheadline ?? null, showHomeStats: showHomeStats ?? true },
+        create: { companyId, showPrices: showPrices ?? true, showWhatsappButton: showWhatsappButton ?? true, showStoreNameWithLogo: showStoreNameWithLogo ?? true, backgroundColor: backgroundColor ?? '#fbfbfd', fontFamily: fontFamily ?? 'sans', homeHeadline: homeHeadline ?? null, homeSubheadline: homeSubheadline ?? null, showHomeStats: showHomeStats ?? true },
       }),
 
       prisma.seoSettings.upsert({

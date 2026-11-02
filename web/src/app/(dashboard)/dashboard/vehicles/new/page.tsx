@@ -23,7 +23,7 @@ export default function NewVehiclePage() {
   const router = useRouter()
 
   const [form, setForm] = useState({
-    brandId: '', modelId: '', year: new Date().getFullYear(), mileage: 0,
+    brandId: '', modelName: '', year: new Date().getFullYear(), mileage: 0,
     price: '', color: '', status: 'available', fuelId: '', transmissionId: '',
     categoryId: '', description: '', featureIds: [] as string[],
   })
@@ -46,7 +46,8 @@ export default function NewVehiclePage() {
     mutationFn: async (data: typeof form) => {
       // 1. Cria o veículo
       const res = await vehiclesService.create({
-        modelId: data.modelId,
+        brandId: data.brandId,
+        modelName: data.modelName.trim(),
         categoryId: data.categoryId || undefined,
         fuelId: data.fuelId || undefined,
         transmissionId: data.transmissionId || undefined,
@@ -78,7 +79,7 @@ export default function NewVehiclePage() {
   function set(f: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const value = e.target.value
-      setForm((p) => ({ ...p, [f]: value, ...(f === 'brandId' ? { modelId: '' } : {}) }))
+      setForm((p) => ({ ...p, [f]: value, ...(f === 'brandId' ? { modelName: '' } : {}) }))
     }
   }
 
@@ -199,11 +200,10 @@ export default function NewVehiclePage() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Modelo *</label>
-              <select value={form.modelId} onChange={set('modelId')} required disabled={!form.brandId} className={selectClass}>
-                <option value="">Selecione o modelo</option>
-                {(models as any[]).map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
+              <label htmlFor="vehicle-model" className="text-sm font-medium text-foreground">Modelo *</label>
+              <input id="vehicle-model" list="vehicle-model-options" value={form.modelName} onChange={set('modelName')} required maxLength={120} disabled={!form.brandId} placeholder="Digite o modelo" className={selectClass} />
+              <datalist id="vehicle-model-options">{(models as any[]).map((m: any) => <option key={m.id} value={m.name} />)}</datalist>
+              <p className="text-xs text-muted-foreground">Pode digitar um modelo que ainda não aparece na lista.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -284,7 +284,7 @@ export default function NewVehiclePage() {
         </Card>
       )}
 
-      </div><aside className="space-y-5 lg:sticky lg:top-28 lg:self-start"><div className="overflow-hidden rounded-[28px] border border-border bg-white"><div className="aspect-[16/10] bg-[radial-gradient(circle_at_50%_30%,#fff0f1,#f4f4f6)]">{images.find((img) => img.isCover) ? <img src={images.find((img) => img.isCover)?.preview} alt="Prévia do veículo" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-primary/35"><CarFront size={58} strokeWidth={1.2} /></div>}</div><div className="p-6"><p className="page-eyebrow mb-2">Prévia do anúncio</p><h2 className="text-xl font-semibold tracking-tight">{(brands as any[]).find((brand: any) => brand.id === form.brandId)?.name || 'Marca'} {(models as any[]).find((model: any) => model.id === form.modelId)?.name || 'e modelo'}</h2><p className="mt-1 text-sm text-muted-foreground">{form.year || 'Ano'} · {form.mileage || 0} km</p><p className="mt-5 text-2xl font-semibold tracking-tight text-primary">{form.price ? formatCurrency(form.price) : 'Preço a definir'}</p></div></div><div className="rounded-[28px] bg-[#1d1d1f] p-6 text-white"><p className="text-xs font-semibold uppercase tracking-[.14em] text-white/50">Antes de publicar</p><div className="mt-5 space-y-4">{['Identifique marca e modelo', 'Informe o preço e os detalhes', 'Adicione fotos de qualidade'].map((step) => <div key={step} className="flex items-center gap-3 text-sm"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10"><Check size={14} /></span>{step}</div>)}</div></div></aside></div>
+    </div><aside className="space-y-5 lg:sticky lg:top-28 lg:self-start"><div className="overflow-hidden rounded-[28px] border border-border bg-white"><div className="aspect-[16/10] bg-[radial-gradient(circle_at_50%_30%,#fff0f1,#f4f4f6)]">{images.find((img) => img.isCover) ? <img src={images.find((img) => img.isCover)?.preview} alt="Prévia do veículo" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center text-primary/35"><CarFront size={58} strokeWidth={1.2} /></div>}</div><div className="p-6"><p className="page-eyebrow mb-2">Prévia do anúncio</p><h2 className="text-xl font-semibold tracking-tight">{(brands as any[]).find((brand: any) => brand.id === form.brandId)?.name || 'Marca'} {form.modelName || 'e modelo'}</h2><p className="mt-1 text-sm text-muted-foreground">{form.year || 'Ano'} · {form.mileage || 0} km</p><p className="mt-5 text-2xl font-semibold tracking-tight text-primary">{form.price ? formatCurrency(form.price) : 'Preço a definir'}</p></div></div><div className="rounded-[28px] bg-[#1d1d1f] p-6 text-white"><p className="text-xs font-semibold uppercase tracking-[.14em] text-white/50">Antes de publicar</p><div className="mt-5 space-y-4">{['Identifique marca e modelo', 'Informe o preço e os detalhes', 'Adicione fotos de qualidade'].map((step) => <div key={step} className="flex items-center gap-3 text-sm"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10"><Check size={14} /></span>{step}</div>)}</div></div></aside></div>
       <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-6 pb-8">
         <Link href="/dashboard/vehicles"><Button variant="outline">Cancelar</Button></Link>
         <Button loading={mutation.isPending} onClick={() => mutation.mutate(form)}>

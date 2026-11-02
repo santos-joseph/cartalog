@@ -1,28 +1,31 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, BookOpenText, Building2, CheckCircle2, Circle, Globe2, Palette, ShieldCheck, UsersRound } from 'lucide-react'
-import type { Company, StoreDesktopSession, Seller, StoreSettings } from '../types'
+import { ArrowRight, BookOpenText, Building2, CheckCircle2, Circle, Globe2, MessageCircleMore, Palette, ShieldCheck, UsersRound } from 'lucide-react'
+import type { Company, LeadStats, StoreDesktopSession, Seller, StoreSettings } from '../types'
 import { Button, errorText, imageUrl, PageHeading, Spinner } from '../ui'
 
-type View = 'overview' | 'team' | 'settings' | 'content'
+type View = 'overview' | 'leads' | 'team' | 'settings' | 'content'
 
 export function OverviewPage({ session, apiOrigin, onNavigate, notify }: { session: StoreDesktopSession; apiOrigin: string; onNavigate: (view: View) => void; notify: (text: string, kind?: 'success' | 'error') => void }) {
   const [team, setTeam] = useState<Seller[] | null>(null)
   const [settings, setSettings] = useState<StoreSettings | null>(null)
   const [company, setCompany] = useState<Company | null>(null)
+  const [leadStats, setLeadStats] = useState<LeadStats | null>(null)
 
   useEffect(() => {
     Promise.all([window.cartalog.team.list(), window.cartalog.settings.get(), window.cartalog.company.get()])
       .then(([teamData, settingsData, companyData]) => { setTeam(teamData); setSettings(settingsData); setCompany(companyData) })
       .catch((error) => notify(errorText(error), 'error'))
   }, [notify])
+  useEffect(() => { window.cartalog.leads.stats().then(setLeadStats).catch(() => null) }, [])
 
   const sellers = team?.filter((person) => person.role === 'SELLER' && person.isActive) ?? []
   const completed = [sellers.length > 0, Boolean(company?.logoUrl), Boolean(settings?.whatsapp || settings?.phone), Boolean(settings?.siteTitle)].filter(Boolean).length
 
   return <>
-    <PageHeading eyebrow="PAINEL DO DONO" title={`Bom dia, ${session.user.name.split(' ')[0]}.`} description="Prepare sua loja, acompanhe sua equipe e defina como o catálogo vai se apresentar." />
+    <PageHeading eyebrow="PAINEL DO DONO" title={`Bom dia, ${session.user.name.split(' ')[0]}.`} description="Acompanhe seus leads, organize a equipe e prepare o catálogo da loja." />
     {!team || !settings || !company ? <Spinner text="Buscando informações da loja" /> : <>
-      <section className="owner-hero"><div className="owner-hero-copy"><span className="hero-kicker"><ShieldCheck size={16} /> OPERAÇÃO SOB SEU CONTROLE</span><h2>{session.company.name}<span> pronta para crescer.</span></h2><p>O desktop reúne as decisões da empresa. Seus vendedores atendem leads na web e no mobile, enquanto você organiza a operação por aqui.</p><div className="hero-actions"><Button onClick={() => onNavigate('team')}>Gerenciar vendedores <ArrowRight size={17} /></Button><Button variant="secondary" onClick={() => onNavigate('settings')}>Configurar loja</Button></div></div><div className="owner-hero-art"><div className="hero-orbit"><Building2 size={70} /></div><span className="hero-brand-chip">{company.logoUrl ? <img src={imageUrl(company.logoUrl, apiOrigin)} alt="Logo da loja" /> : <Globe2 size={32} />}</span></div></section>
+      <section className="owner-hero"><div className="owner-hero-copy"><span className="hero-kicker"><ShieldCheck size={16} /> OPERAÇÃO SOB SEU CONTROLE</span><h2>{session.company.name}<span> pronta para crescer.</span></h2><p>O desktop reúne as decisões da empresa. Seus vendedores atendem leads na web e no mobile, enquanto você organiza a operação por aqui.</p><div className="hero-actions"><Button onClick={() => onNavigate('leads')}>Acompanhar leads <ArrowRight size={17} /></Button><Button variant="secondary" onClick={() => onNavigate('team')}>Gerenciar vendedores</Button></div></div><div className="owner-hero-art"><div className="hero-orbit"><Building2 size={70} /></div><span className="hero-brand-chip">{company.logoUrl ? <img src={imageUrl(company.logoUrl, apiOrigin)} alt="Logo da loja" /> : <Globe2 size={32} />}</span></div></section>
+      <button type="button" className="owner-lead-strip panel" onClick={() => onNavigate('leads')}><span className="owner-lead-icon"><MessageCircleMore size={23} /></span><span><strong>Atendimento da loja</strong><small>Veja os contatos, o status e quem está cuidando de cada lead.</small></span><span className="owner-lead-count"><strong>{leadStats?.queue ?? '—'}</strong><small>na fila</small></span><span className="owner-lead-count"><strong>{leadStats?.total ?? '—'}</strong><small>no total</small></span><ArrowRight size={19} /></button>
       <div className="overview-grid"><section className="stat-panel"><span>VENDEDORES ATIVOS</span><strong>{sellers.length}</strong><p>{sellers.length ? 'Pessoas prontas para receber leads.' : 'Cadastre o primeiro vendedor para atender leads.'}</p><button type="button" onClick={() => onNavigate('team')}>Abrir equipe <ArrowRight size={16} /></button></section><section className="stat-panel"><span>CONFIGURAÇÃO DA LOJA</span><strong>{completed}<small>/ 4</small></strong><p>{completed === 4 ? 'Os dados principais da loja estão prontos.' : 'Finalize os dados para apresentar melhor sua marca.'}</p><button type="button" onClick={() => onNavigate('settings')}>Completar cadastro <ArrowRight size={16} /></button></section><section className="stat-panel stat-panel-red"><span>SEU CATÁLOGO</span><strong className="stat-icon"><BookOpenText size={42} /></strong><p>Organize categorias, páginas e banners do site público.</p><button type="button" onClick={() => onNavigate('content')}>Editar conteúdo <ArrowRight size={16} /></button></section></div>
       <div className="overview-bottom"><section className="panel"><div className="panel-head"><div><span className="eyebrow">PRÓXIMOS PASSOS</span><h2>Checklist da sua loja</h2></div><span className="completion-pill">{completed} de 4 concluídos</span></div><div className="checklist">{[
         { done: sellers.length > 0, text: 'Cadastre um vendedor', detail: 'Só vendedores atendem os leads.', view: 'team' as View, icon: UsersRound },

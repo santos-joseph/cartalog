@@ -10,6 +10,7 @@ export const updateSettingsSchema = z.object({
   // SiteSettings
   showPrices: z.boolean().optional(),
   showWhatsappButton: z.boolean().optional(),
+  showStoreNameWithLogo: z.boolean().optional(),
   backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   fontFamily: z.enum(['sans', 'serif', 'rounded']).optional(),
   homeHeadline: z.string().max(180).nullish(),

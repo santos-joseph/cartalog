@@ -19,6 +19,21 @@ export type PlatformCompanyInput = { companyName: string; companyEmail: string; 
 export type PlatformPlanInput = { code: string; name: string; priceCents: number; billingInterval: 'monthly' | 'yearly'; isActive: boolean }
 export type PlatformSubscriptionInput = { planId: string; status: 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled'; currentPeriodEnd: string | null; notes: string | null }
 export type SellerInput = { name: string; email: string; password: string }
+export type LeadStatus = { id: string; name: string; kind: 'open' | 'won' | 'lost'; position: number | null; _count?: { leads: number } }
+export type LeadVehicle = { id: string; slug: string; year: number; model: { name: string; brand: { name: string } }; images: Array<{ imageUrl: string }> }
+export type Lead = {
+  id: string; name: string; phone: string | null; email: string | null; message: string | null; source: string | null; createdAt: string
+  assignedUserId: string | null; assignedUser: { id: string; name: string } | null
+  status: Pick<LeadStatus, 'id' | 'name' | 'kind'> | null; vehicle: LeadVehicle | null
+  _count?: { interactions: number }
+}
+export type LeadDetail = Lead & {
+  interactions: Array<{ id: string; type: string; note: string | null; userId: string | null; createdAt: string }>
+  followups: Array<{ id: string; userId: string | null; scheduledAt: string; note: string | null; completed: boolean }>
+  auditEvents: Array<{ id: string; action: string; actorName: string; createdAt: string }>
+}
+export type LeadList = { data: Lead[]; meta: { page: number; total: number; lastPage: number } }
+export type LeadStats = { total: number; queue: number; byStatus: Array<{ id: string; name: string; kind: LeadStatus['kind']; count: number }> }
 
 export type StoreSettings = {
   primaryColor: string
@@ -28,6 +43,7 @@ export type StoreSettings = {
   email: string | null
   showPrices: boolean
   showWhatsappButton: boolean
+  showStoreNameWithLogo: boolean
   backgroundColor: string
   fontFamily: 'sans' | 'serif' | 'rounded'
   homeHeadline: string | null
@@ -81,7 +97,7 @@ export type Vehicle = {
   images: VehicleImage[]; features?: Array<{ feature: ReferenceItem }>
 }
 export type VehicleInput = {
-  modelId: string; categoryId?: string; fuelId?: string; transmissionId?: string
+  brandId: string; modelName: string; categoryId?: string; fuelId?: string; transmissionId?: string
   year: number; mileage: number; price: number; color?: string; description?: string
   featureIds: string[]; status: Vehicle['status']
 }
@@ -120,6 +136,13 @@ export interface CartalogBridge {
     update(id: string, input: { name: string }): Promise<Seller>
     deactivate(id: string): Promise<null>
     reactivate(id: string): Promise<Seller>
+  }
+  leads: {
+    list(filters: { page?: number; search?: string; scope?: 'all' | 'queue'; statusId?: string; assignedUserId?: string }): Promise<LeadList>
+    get(id: string): Promise<LeadDetail>
+    stats(): Promise<LeadStats>
+    statuses(): Promise<LeadStatus[]>
+    assign(id: string, assignedUserId: string | null): Promise<Lead>
   }
   company: { get(): Promise<Company> }
   settings: {

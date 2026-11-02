@@ -7,6 +7,7 @@ import staticFiles from '@fastify/static'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import path from 'path'
+import { readFile } from 'node:fs/promises'
 import { env } from './config/env'
 import { errorHandler } from './shared/errors/error-handler'
 import { healthRoutes } from './modules/health/health.routes'
@@ -20,6 +21,7 @@ import { usersRoutes } from './modules/users/users.routes'
 import { demoRoutes } from './modules/demo/demo.routes'
 import { platformRoutes } from './modules/platform/platform.routes'
 import { auditStoreResponse } from './shared/audit/store-audit'
+import { registerRouteMetadata } from './docs/route-metadata'
 
 const app = Fastify({
   trustProxy: env.TRUST_PROXY,
@@ -34,6 +36,7 @@ const app = Fastify({
 
 async function bootstrap() {
   app.addHook('onSend', auditStoreResponse)
+  registerRouteMetadata(app)
   // ---- Plugins ----
   await app.register(cors, {
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -70,7 +73,11 @@ async function bootstrap() {
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.0',
-      info: { title: 'Cartalog API', description: 'SaaS de catalogação de veículos', version: '2.0.0' },
+      info: {
+        title: 'Cartalog API',
+        description: 'Rotas agrupadas por área do sistema. Use **Authorize** para informar o token JWT. [Ver diagrama do banco de dados](/docs/database) · [Abrir DBML para dbdiagram](/docs/banco-de-dados.dbml) · [Baixar SQL do schema](/docs/banco-de-dados.sql).',
+        version: '2.0.0',
+      },
       components: {
         securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },
       },
@@ -79,7 +86,32 @@ async function bootstrap() {
 
   await app.register(swaggerUi, {
     routePrefix: '/docs',
-    uiConfig: { docExpansion: 'list' },
+    uiConfig: { docExpansion: 'none', filter: true, deepLinking: true, displayRequestDuration: true, tagsSorter: 'alpha', operationsSorter: 'alpha' },
+    theme: {
+      title: 'Cartalog · Documentação da API',
+      css: [{
+        filename: 'cartalog-docs.css',
+        content: '.swagger-ui .topbar{background:#19191d;border-bottom:3px solid #d60824}.swagger-ui .topbar .topbar-wrapper img{display:none}.swagger-ui .topbar .topbar-wrapper a:before{content:"Cartalog / API";color:#fff;font:700 21px system-ui,sans-serif;letter-spacing:-.04em}.swagger-ui .info .title{letter-spacing:-.04em}.swagger-ui .btn.authorize{color:#c9001e;border-color:#c9001e}.swagger-ui .btn.authorize svg{fill:#c9001e}.swagger-ui .filter .operation-filter-input{border-radius:8px}',
+      }],
+    },
+  })
+
+  const readProjectDoc = async (fileName: string) => {
+    const root = process.cwd()
+    try {
+      return await readFile(path.join(root, '..', 'docs', fileName))
+    } catch {
+      return readFile(path.join(root, 'docs', fileName))
+    }
+  }
+  app.get('/docs/database', { schema: { hide: true } }, async (_request, reply) => {
+    return reply.type('text/html; charset=utf-8').send(await readProjectDoc('banco-de-dados.html'))
+  })
+  app.get('/docs/banco-de-dados.sql', { schema: { hide: true } }, async (_request, reply) => {
+    return reply.type('text/plain; charset=utf-8').send(await readProjectDoc('banco-de-dados.sql'))
+  })
+  app.get('/docs/banco-de-dados.dbml', { schema: { hide: true } }, async (_request, reply) => {
+    return reply.type('text/plain; charset=utf-8').send(await readProjectDoc('banco-de-dados.dbml'))
   })
 
   // ---- Routes ----

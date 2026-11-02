@@ -1,417 +1,188 @@
-# Cartalog
+# Cartalog — documentação do projeto e próximos módulos
 
-**SaaS de catalogação de veículos multi-tenant** — a revendedora solicita uma demonstração e a equipe Cartalog cria a conta do dono. A loja recebe um site próprio com catálogo, painel administrativo e gestão de leads em seu subdomínio.
+**Revisado em:** 02/11/2026
+**Fonte:** implementação presente neste repositório.
+**Legenda:** **Atual** = existe no código; **A definir** = decisão de produto ainda aberta.
 
-> Trabalho de Conclusão de Curso — Desenvolvimento de um SaaS multi-tenant para gestão de catálogos de veículos com arquitetura moderna em Node.js e Next.js.
+## 1. Visão do produto
 
----
+O Cartalog é um SaaS para lojas de veículos. Cada loja tem uma empresa (`Company`), usuários, estoque, catálogo público por subdomínio e leads. O dono administra a operação; vendedores atendem os leads. A landing institucional recebe pedidos de demonstração. Depois do contato comercial, a equipe Cartalog cria a conta inicial do dono pelo painel global.
 
-## Visão Geral
+### Superfícies
 
-### Divisão atual das interfaces
+| Superfície | Público | Responsabilidade atual |
+| --- | --- | --- |
+| Landing web no domínio principal | Interessados | Apresentar o produto e receber pedidos de demonstração. |
+| Site público em `{slug}.dominio` | Compradores | Mostrar a loja, veículos e páginas publicadas; captar leads. |
+| Painel web da loja | Dono e vendedores | Dono: visão geral, veículos e acompanhamento/distribuição de leads. Vendedor: fila e atendimento. |
+| Desktop Electron | Dono da loja e equipe global | Gestão de equipe, veículos, personalização e leads da loja; administração global conforme a conta usada no login. |
+| Mobile React Native/Expo | Vendedores | Fila, carteira de leads, interações e mudança de status. |
+| API Fastify | Todas as superfícies | Autenticação, permissões, isolamento por empresa e regras de negócio. |
+| Painel global Cartalog | Equipe interna | Login separado, empresas, administradores, pedidos de demonstração, planos, assinaturas manuais e auditoria. |
 
-- **API:** concentra as regras de empresa, usuários, veículos, leads, demonstrações, contas globais, assinaturas manuais e manutenção do catálogo.
-- **Web administrativa:** login, visão do dono, cadastro de veículos e gestão de leads. O cadastro de empresa, vendedores, configurações e identidade visual foi retirado da interface web.
-- **Site público:** catálogo por subdomínio e captura de leads.
-- **Desktop:** app Electron com acesso global para a equipe Cartalog e acesso da loja para o dono; inclui vendedores, veículos, personalização e páginas públicas. Veja [desktop/README.md](desktop/README.md).
-- **Painel global:** login separado em `/platform/login` para a equipe Cartalog criar empresas e donos, gerir planos e assinaturas, acompanhar demonstrações e administrar acessos globais.
-- **Mobile:** app React Native/Expo para o vendedor assumir leads, registrar contatos e atualizar status. Veja [mobile/README.md](mobile/README.md).
+### Termos que não devem ser confundidos
 
-A criação interna da loja gera um usuário `OWNER`. Somente o dono cadastra vendedores (`SELLER`) e pode atribuir ou reatribuir leads. Somente vendedores podem assumir leads da fila, registrar interações e mudar o status. Ao marcar um lead como `Perdido`, o vendedor informa o motivo. Desativar um vendedor revoga o acesso, devolve seus leads à fila e preserva o histórico.
+- **Dono da loja (`OWNER`):** usuário de uma empresa específica. Não administra outras empresas.
+- **Vendedor (`SELLER`):** usuário de uma empresa específica. Atende leads na web e no mobile.
+- **Dono da plataforma (`PLATFORM_OWNER`):** administra o SaaS Cartalog, em autenticação separada das lojas, inclusive os administradores globais.
+- **Administrador da plataforma (`PLATFORM_ADMIN`):** usuário interno criado pelo dono da plataforma; gerencia empresas, planos e assinaturas, sem acesso à gestão de administradores.
+- **Lead de venda de veículo:** contato captado no site de uma loja, salvo em `leads`.
+- **Pedido de demonstração:** interessado no SaaS Cartalog, salvo em `demo_requests`; não é um lead de veículo e não cria uma empresa automaticamente.
 
-O Cartalog funciona como uma plataforma no estilo **"Shopify para revendedoras de carros"**: depois da criação da conta pela equipe Cartalog, a empresa recebe:
+## 2. Arquitetura atual
 
-- Um **site público** em `slug.cartalog.com` com seu catálogo de veículos
-- Um **painel administrativo** privado para gerenciar estoque, leads e equipe
-- **Configurações de identidade visual** (logo, cores, banners, SEO)
-- Um **sistema de CRM simplificado** para acompanhar os leads recebidos
-
-O isolamento entre empresas usa **multi-tenancy compartilhado** (um banco de dados, filtros de aplicação por `company_id`), com identificação do catálogo via subdomínio.
-
-### Pedidos de demonstração e criação de contas
-
-1. A landing em `http://localhost:3000/` envia o formulário para `POST /api/v1/demo-requests`. O pedido é salvo em `demo_requests` no PostgreSQL antes da tentativa de e-mail.
-2. Em `api/.env`, configure `SALES_INBOX_EMAIL=sejacartalog@gmail.com`, `SMTP_USER=sejacartalog@gmail.com` e `SMTP_PASS` com uma **senha de app** da conta Gmail. O host padrão é `smtp.gmail.com` na porta 465. Ative a verificação em duas etapas na conta Google para criar a senha de app. Não use a senha comum da conta.
-3. Se o envio falhar, o pedido continua no banco com `email_status=failed`. Após corrigir a configuração, execute `npm run demo:retry-emails` dentro de `api/`.
-4. Depois do contato comercial, a equipe Cartalog cria a empresa e a conta `OWNER` pelo painel global. Para configurar o primeiro administrador global, execute `npm run platform:bootstrap` dentro de `api/` em um terminal interativo. O comando interno `npm run account:create` continua disponível para recuperação.
-
-O registro público de empresa foi removido da API e do desktop. O formulário de demonstração não cria conta automaticamente.
-O modo manutenção é ligado pelo dono nas configurações do desktop. Ele oculta o catálogo público e impede a chegada de novos leads até ser desligado.
-Em produção atrás de um proxy reverso confiável, configure `TRUST_PROXY=true` na API para que o limite de pedidos por IP use o endereço correto do visitante.
-
----
-
-## Stack Tecnológica
-
-| Camada | Tecnologia |
-|--------|-----------|
-| **Backend** | Node.js + TypeScript + Fastify 5 |
-| **ORM** | Prisma 7 + pg adapter |
-| **Banco de dados** | PostgreSQL 16 |
-| **Validação** | Zod v4 |
-| **Autenticação** | JWT (access token 15min + refresh token 7d) |
-| **Frontend** | Next.js 16 + TypeScript |
-| **Estilização** | Tailwind CSS |
-| **Estado / Cache** | React Query + Zustand |
-| **Upload de arquivos** | @fastify/multipart |
-| **Documentação API** | Swagger / OpenAPI 3.0 |
-| **Infraestrutura** | Docker Compose (PostgreSQL) |
-
----
-
-## Arquitetura
-
-```
-cartalog/
-├── api/                    # Backend — Fastify REST API
-│   ├── prisma/
-│   │   └── schema.prisma   # Definição do banco de dados
-│   ├── src/
-│   │   ├── config/         # Variáveis de ambiente (Zod)
-│   │   ├── modules/        # Módulos da aplicação
-│   │   │   ├── auth/       # Login, refresh, /me; criação interna da loja
-│   │   │   ├── companies/  # Configurações, banners, páginas, categorias
-│   │   │   ├── vehicles/   # CRUD de veículos + upload de imagens
-│   │   │   ├── leads/      # CRM de leads + interações + status
-│   │   │   ├── catalog/    # Rotas públicas do site da empresa
-│   │   │   ├── dashboard/  # Overview e métricas
-│   │   │   └── users/      # Gestão da equipe
-│   │   └── shared/
-│   │       ├── errors/     # Error handler global
-│   │       ├── middlewares/ # Tenant middleware (subdomínio)
-│   │       └── types/      # Extensões do Fastify (request.tenant, request.user)
-│   └── uploads/            # Arquivos enviados (servidos em /uploads/...)
-│
-├── web/                    # Frontend — Next.js App Router
-│   └── src/
-│       ├── app/
-│       │   ├── (auth)/     # Login; cadastro redireciona ao login
-│       │   ├── (dashboard)/ # Painel administrativo privado
-│       │   └── [slug]/     # Site público da empresa (catálogo)
-│       ├── components/     # Componentes reutilizáveis
-│       └── services/       # Camada de serviços (chamadas à API)
-│
-├── mobile/                 # App React Native/Expo do vendedor
-├── desktop/                # App Electron do dono da loja
-└── docker-compose.yml      # PostgreSQL containerizado
+```mermaid
+flowchart LR
+  Visitante[Visitante da landing] --> Web[Web Next.js]
+  Comprador[Comprador de veículo] --> Web
+  Dono[Dono da loja] --> Web
+  Dono --> Desktop[Desktop Electron]
+  Vendedor[Vendedor] --> Web
+  Vendedor --> Mobile[Mobile Expo]
+  Web --> API[API Fastify]
+  Desktop --> API
+  Mobile --> API
+  API --> DB[(PostgreSQL / Prisma)]
+  API --> Files[Uploads locais]
+  API --> SMTP[Gmail via SMTP para demonstrações]
 ```
 
----
-
-## Multi-Tenancy — Como Funciona
-
-O coração do sistema é a identificação automática de tenant via **subdomínio**:
-
-```
-carstore.cartalog.com       →  empresa com slug "carstore"
-premium-motors.cartalog.com →  empresa com slug "premium-motors"
-```
-
-### Fluxo de identificação
-
-1. O cliente acessa `carstore.cartalog.com`
-2. O **`tenantMiddleware`** lê o header `Host` e extrai o subdomínio
-3. Busca a empresa no banco pelo slug
-4. Injeta `request.tenant` com os dados da empresa
-5. Todos os dados retornados já estão filtrados por `company_id`
-
-```typescript
-// Todas as queries já incluem o filtro de tenant automaticamente
-prisma.vehicle.findMany({
-  where: { companyId: request.tenant.id }
-})
-```
-
-### Em desenvolvimento local
-
-Configure em `/etc/hosts`:
-```
-127.0.0.1  carstore.localhost
-```
-E acesse `http://carstore.localhost:3000`.
-
----
-
-## Banco de Dados — Modelo de Dados
-
-```
-Company (1)
-  ├── User[]             — dono (OWNER) e vendedores (SELLER)
-  ├── SiteSettings       — exibir preços, botão WhatsApp, tema
-  ├── SeoSettings        — meta title, description, keywords
-  ├── CompanyLocation[]  — endereço físico
-  ├── Banner[]           — banners do site (com imagem)
-  ├── Page[]             — páginas estáticas ("Sobre nós", "Política"...)
-  ├── Category[]         — categorias de veículos (por empresa)
-  ├── Vehicle[]
-  │     ├── VehicleImage[]    — até 20 imagens, 1 capa
-  │     ├── VehicleFeature[]  → Feature (global: "Ar condicionado", "GPS"...)
-  │     └── VehicleView[]     — contagem de visualizações
-  ├── Lead[]
-  │     ├── LeadStatus        — status customizável por empresa
-  │     ├── LeadInteraction[] — histórico de contatos
-  │     ├── LeadFollowup[]    — agendamentos de retorno
-  │     └── LeadTag[]         — etiquetas
-  └── FeaturedVehicle[]  — destaques da home
-
-Brand → Model → Vehicle   (marcas e modelos são globais/compartilhados)
-Fuel, Transmission         (tabelas de referência globais)
-Feature                    (opcionais globais — "GPS", "Teto Solar"...)
-```
-
----
-
-## Módulos da API
-
-Base: `http://localhost:3333/api/v1`
-Documentação interativa: `http://localhost:3333/docs`
-
-### Autenticação (`/auth`)
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| POST | `/login` | Autentica a conta da loja por e-mail e senha |
-| POST | `/desktop-login` | Direciona dono da loja ou administrador global ao ambiente correto |
-| POST | `/refresh` | Renova access token com refresh token |
-| GET | `/me` | Retorna usuário + empresa + configurações |
+- [API](api/src/server.ts): Node.js, TypeScript, Fastify 5, Zod, Prisma 7 e PostgreSQL. Rotas sob `/api/v1`, documentação Swagger em `/docs` e saúde em `/health`.
+- [Web](web/src/app/page.tsx): Next.js 16, React 19 e Tailwind. A raiz é a landing; o [proxy](web/src/proxy.ts) reescreve subdomínios de lojas para as páginas públicas `/{slug}`.
+- [Desktop](desktop/src/App.tsx): Electron, React e Vite. A interface usa a ponte IPC exposta pelo preload; o processo principal chama a API. Não acessa o PostgreSQL diretamente.
+- [Mobile](mobile/src/app/_layout.tsx): Expo Router e React Native. Usa a mesma API e os mesmos dados de leads da web.
+- [Banco](api/prisma/schema.prisma): banco compartilhado entre empresas, com `company_id` nas entidades da loja. As migrações ficam em `api/prisma/migrations`.
+- [Uploads](api/src/modules/uploads/uploads.service.ts): arquivos armazenados localmente em `api/uploads` e servidos pela API. Em hospedagem com múltiplas instâncias, será necessário armazenamento compartilhado.
+
+## 3. Fluxos implementados
 
-`POST /api/v1/demo-requests` recebe os interessados. A criação da empresa e do dono é feita no painel global em `/platform`, que também cria `SiteSettings`, `SeoSettings` e 5 `LeadStatus` padrão. O comando `npm run account:create` permanece para recuperação.
+### 3.1 Demonstração e criação da loja
 
-### Veículos (`/vehicles`) — JWT obrigatório
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/brands`, `/models`, `/fuels`... | Dados de referência (público) |
-| GET | `/` | Lista com filtros avançados |
-| POST | `/` | Cadastra veículo (suporta markdown na descrição) |
-| PUT | `/:id` | Atualiza veículo |
-| DELETE | `/:id` | Remove veículo |
-| POST | `/:id/images` | Upload multipart (máx 20 imagens, 5MB cada) |
-| PATCH | `/:id/cover` | Define imagem de capa |
-| DELETE | `/:id/images/:imageId` | Remove imagem específica |
+1. Interessado preenche o formulário na landing web.
+2. `POST /api/v1/demo-requests` valida os dados e grava o pedido em `demo_requests`.
+3. A API tenta enviá-lo por SMTP para `SALES_INBOX_EMAIL`. Se falhar, o pedido permanece no banco com `email_status=failed` e pode ser reenviado com `npm run demo:retry-emails`.
+4. A equipe Cartalog conversa com o interessado e cria a empresa e o `OWNER` em `/platform`, com plano inicial opcional. O comando `npm run account:create` permanece para recuperação local.
+5. O dono recebe as credenciais por um canal apropriado e passa a configurar a loja no desktop.
 
-**Filtros disponíveis:** `search`, `brandId`, `modelId`, `categoryId`, `fuelId`, `transmissionId`, `status`, `yearMin/Max`, `priceMin/Max`, `orderBy`, `order`.
+Não existe cadastro público de empresa: `/api/v1/auth/register` foi removido e a página web `/register` redireciona para o login. A criação pelo painel global exige uma conta da plataforma.
 
-### Empresa (`/companies`) — JWT obrigatório
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET/PUT | `/settings` | Lê/atualiza configurações (cores, SEO, localização, WhatsApp) |
-| POST | `/settings/logo` | Upload do logo |
-| GET/POST | `/banners` | Gerencia banners do site |
-| POST | `/banners/:id/image` | Upload de imagem do banner (máx 8MB) |
-| GET/POST | `/pages` | Páginas estáticas |
-| GET/POST | `/categories` | Categorias de veículos |
-
-O `PUT /settings` salva em 4 tabelas simultaneamente: `companies`, `site_settings`, `seo_settings` e `company_locations`.
-
-### Leads / CRM (`/leads`) — JWT obrigatório
-
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/` | Lista com filtros (status, veículo, responsável, busca) |
-| GET | `/:id` | Lead completo com interações, followups e tags |
-| POST | `/` | Cria lead (origem: catálogo público) |
-| PATCH | `/:id` | Atualiza status ou responsável |
-| POST | `/:id/claim` | Vendedor assume um lead da fila |
-| POST | `/:id/release` | Vendedor devolve seu lead à fila |
-| POST | `/:id/interactions` | Registra interação (ligação, e-mail, visita...) |
-| GET | `/statuses` | Status disponíveis com contagem de leads |
-| GET | `/stats` | Totais e leads por status |
-| POST/PUT/DELETE | `/statuses` | Gerencia status customizados |
+### 3.2 Catálogo e lead de veículo
 
-`GET /leads` aceita `scope=queue|mine|all`. O dono pode atribuir a um vendedor da própria empresa; só o vendedor responsável muda o status e registra interações. `Perdido` exige `lossReason`.
+1. Dono cadastra veículos na web ou no desktop e publica o conteúdo da loja pelo desktop.
+2. Comprador visita `{slug}.localhost:3000` em desenvolvimento, ou o subdomínio equivalente em produção.
+3. O frontend consulta `/api/v1/catalog`, identificando a empresa pelo host ou por `X-Tenant-Slug`.
+4. O comprador envia contato por `POST /api/v1/leads/public`; o lead recebe o status aberto inicial da empresa.
+5. O dono acompanha todos os leads na web ou no desktop, com filtros, responsável e histórico; pode atribuir o lead a um vendedor. Um vendedor pode assumir um lead sem responsável na fila. Somente o vendedor responsável registra interações e muda o status. `Perdido` exige motivo.
 
-### Catálogo Público (`/catalog`) — sem autenticação
+### 3.3 Sessões e permissões
 
-Identificação de empresa pelo subdomínio ou pelo header `X-Tenant-Slug` usado pelo frontend servidor. O slug não aparece na URL pública.
+- Login da loja usa apenas e-mail e senha. O e-mail identifica uma única conta de loja; a API encontra a empresa automaticamente. Senhas são armazenadas com bcrypt.
+- Access token JWT e refresh token são usados nas superfícies privadas. O middleware da API consulta o usuário no banco em cada requisição protegida e verifica `isActive`, papel e `companyId`.
+- O desktop aceita `OWNER`, `PLATFORM_OWNER` e `PLATFORM_ADMIN`, cada um no seu espaço; o mobile aceita somente `SELLER`. A web da loja aceita `OWNER` e `SELLER`, enquanto `/platform` atende contas globais.
+- A checagem visual de menu não substitui a autorização da API. Operações de empresa, estoque, equipe e lead são protegidas também no servidor.
+- A sessão do desktop guarda o refresh token da loja ou o token global criptografado pelo cofre do sistema quando o Electron oferece esse recurso; o mobile usa Expo SecureStore.
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/` | Homepage (empresa, veículos em destaque, banners, páginas) |
-| GET | `/vehicles` | Lista paginada (apenas `status=available`) |
-| GET | `/vehicles/:slug` | Detalhe do veículo |
-| GET | `/pages/:slug` | Página estática pública |
+## 4. Funcionalidades atuais por perfil
 
-### Dashboard (`/dashboard`) — JWT obrigatório
+| Ação | Visitante | `OWNER` | `SELLER` | Plataforma global |
+| --- | :---: | :---: | :---: | :---: |
+| Ver catálogo público e páginas publicadas | Sim | Sim | Sim | Sim |
+| Enviar lead de veículo | Sim | Sim | Sim | — |
+| Pedir demonstração do SaaS | Sim | Sim | Sim | — |
+| Criar empresa e conta inicial | — | — | — | Painel global; comando interno de recuperação |
+| Gerenciar vendedores | — | Desktop | — | — |
+| Criar e editar veículos | — | Web e desktop | — | — |
+| Personalizar a loja e criar páginas | — | Desktop | — | — |
+| Ver todos os leads da sua loja e distribuir | — | Web e desktop | — | — |
+| Assumir, atender e alterar status de lead | — | — | Web e mobile | — |
+| Gerenciar assinaturas de todas as lojas | — | — | — | Painel global, manual |
+| Ativar modo manutenção do site da sua loja | — | Desktop | — | — |
 
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET | `/overview` | Veículos (total/disponíveis/vendidos/reservados), stats de leads, mais vistos, últimos leads, leads por dia |
+## 5. Modelo de dados atual
 
----
+| Grupo | Tabelas/modelos | Uso |
+| --- | --- | --- |
+| Plataforma comercial | `DemoRequest` | Pedidos de demonstração e estado do envio de e-mail; não pertence a uma loja. |
+| Empresa e identidade | `Company`, `SiteSettings`, `SeoSettings`, `CompanyLocation` | Dados da loja, cores, conteúdo da home, SEO e localização. |
+| Pessoas | `User` | Usuários vinculados a exatamente uma empresa, com papel `OWNER` ou `SELLER` e estado ativo. |
+| Conteúdo | `Banner`, `Page`, `Category`, `FeaturedVehicle` | Banners, páginas por blocos, categorias e destaques da loja. |
+| Catálogo | `Brand`, `Model`, `Fuel`, `Transmission`, `Feature`, `Vehicle`, `VehicleImage`, `VehicleFeature`, `VehicleView`, `Search` | Referências globais; estoque, imagens e métricas por empresa. |
+| CRM | `Lead`, `LeadStatus`, `LeadInteraction`, `LeadFollowup`, `LeadTag`, `LeadTagRelation`, `LeadVehicleInterest` | Leads, situação, responsável, histórico e relações com veículos. |
 
-## Upload de Arquivos
+`Company` é o limite principal dos dados da loja. Marcas, modelos, combustíveis, câmbios e opcionais são referências compartilhadas. Páginas e categorias usam unicidade de slug dentro da empresa. Há tabelas para administradores globais, planos, assinaturas manuais, auditoria e histórico de manutenção. Cobranças automáticas ainda não existem.
 
-Os arquivos são armazenados em `./uploads/` e servidos pelo próprio Fastify via `@fastify/static`.
+Ter um modelo no Prisma não significa que toda a operação já tem tela ou rota. `LeadFollowup`, etiquetas e interesses adicionais de veículo, por exemplo, têm estrutura no banco, mas ainda não compõem um fluxo completo nas interfaces atuais.
 
-| Categoria | Tamanho máx | Tipos aceitos |
-|-----------|-------------|---------------|
-| `vehicles` | 5 MB | jpeg, png, webp |
-| `logos` | 2 MB | jpeg, png, webp, svg |
-| `favicons` | 512 KB | ico, png |
-| `banners` | 8 MB | jpeg, png, webp |
-| `pages` | 8 MB | jpeg, png, webp |
+## 6. Mapa da API atual
 
-URL de acesso: `http://localhost:3333/uploads/vehicles/nome-do-arquivo.jpg`
+Base: `/api/v1`. O Swagger expõe o detalhamento de rotas e payloads em `/docs`. O [diagrama do banco](docs/banco-de-dados.html), o [DBML para dbdiagram](docs/banco-de-dados.dbml) e o [SQL do schema](docs/banco-de-dados.sql) também estão no repositório.
 
----
+| Prefixo | Principais operações |
+| --- | --- |
+| `/auth` | Login da loja, renovação de token, usuário atual. |
+| `/demo-requests` | `POST /` público: pedido de demonstração; grava no banco e tenta notificar por e-mail. |
+| `/companies` | Dados da própria empresa; configurações, logo, categorias, banners, páginas e imagens de páginas. Escrita reservada ao `OWNER`. |
+| `/vehicles` | Referências públicas; listagem privada, CRUD de veículos, imagens e capa. Escrita reservada ao `OWNER`. |
+| `/leads` | Captura pública em `/public`; listagem, estatísticas, status, atribuição, assumir/devolver lead e interações. |
+| `/catalog` | Home, veículos e páginas publicadas da empresa identificada pelo tenant. |
+| `/dashboard` | Resumo da empresa para `OWNER`. |
+| `/users` | Vendedores da empresa, ativação/desativação e troca da própria senha. |
 
-## Frontend — Páginas
+`GET /health` verifica a conectividade com o PostgreSQL. A API de catálogo e `POST /leads/public` são distintos da landing comercial e do formulário de demonstração.
 
-### Site público (`/[slug]`)
+## 7. Execução local e configuração
 
-Acessado via subdomínio (`carstore.cartalog.com`). Conteúdo dinâmico por tenant.
+1. Inicie PostgreSQL local ou `docker compose up -d`. O [compose](docker-compose.yml) contém PostgreSQL 16; uma instalação local compatível também serve.
+2. Em `api/`, crie `.env` a partir de `.env.example`. Configure `DATABASE_URL`, duas chaves JWT distintas e, se quiser envio de e-mail, `SALES_INBOX_EMAIL`, `SMTP_USER` e `SMTP_PASS`. Rode `npm install`, `npm run db:generate`, `npm run db:migrate:prod` e `npm run dev`. Porta padrão: `3333`.
+3. Em `web/`, configure `.env.local` com `NEXT_PUBLIC_API_URL=http://localhost:3333` e `NEXT_PUBLIC_BASE_DOMAIN=localhost`; rode `npm install` e `npm run dev`. Porta padrão: `3000`.
+4. Em `desktop/`, crie `.env` a partir de `.env.example`, configure os endereços da API e da web e rode `npm install` e `npm run dev`.
+5. Em `mobile/`, siga [mobile/README.md](mobile/README.md) e rode `npm install` e `npx expo start`. Em aparelho físico, ele deve conseguir alcançar a API pelo endereço da rede local.
 
-- `/` — Home com banners, veículos em destaque e informações da empresa
-- `/veiculos` — Listagem com filtros
-- `/veiculos/[slug]` — Detalhe do veículo com galeria e formulário de lead
-- `/paginas/[slug]` — Página publicada no construtor do desktop
+Os comandos de criação interna de loja e reenvio de pedidos são executados dentro de `api/`. Não coloque senhas de banco, JWT ou Gmail no repositório. O e-mail de demonstração só é entregue de fato quando o SMTP está configurado e acessível.
 
-### Painel administrativo (`/dashboard`)
+Para a apresentação no Windows, veja [o roteiro de execução](APRESENTACAO.md) e o script [iniciar-demo-windows.cmd](iniciar-demo-windows.cmd).
 
-Protegido por autenticação JWT.
+## 8. Painel global implementado
 
-| Rota | Funcionalidade |
-|------|---------------|
-| `/dashboard` | Overview com métricas e gráficos |
-| `/dashboard/vehicles` | Listagem e gestão do estoque |
-| `/dashboard/vehicles/new` | Cadastro de novo veículo |
-| `/dashboard/vehicles/[id]` | Edição de veículo |
-| `/dashboard/leads` | CRM de leads |
-| `/dashboard/leads/[id]` | Detalhes e interações do lead |
+A plataforma usa identidades próprias em PlatformUser. O login em /platform/login ou no desktop recebe e-mail e senha; a sessão global usa um JWT com chave derivada, emissor, audiência e escopo próprios. Um token global não autoriza as rotas da loja. O primeiro proprietário global é criado ou atualizado pelo comando interativo npm run platform:bootstrap em api/. A senha não fica no repositório.
 
-As rotas antigas `/dashboard/catalog`, `/dashboard/team` e `/dashboard/settings` redirecionam ao painel até existirem no app desktop.
+O painel em /platform permite:
 
----
+- Ver empresas, assinaturas ativas, planos e pedidos de demonstração.
+- Criar uma empresa e a conta OWNER, associando um plano inicial opcional.
+- Criar e ativar/desativar planos, definir preço em centavos e período mensal ou anual.
+- Definir manualmente o plano, estado, data final do período e observação de cada assinatura.
+- Ver pedidos de demonstração recebidos.
+- Criar, ativar e desativar administradores globais e consultar auditoria, ações reservadas ao PLATFORM_OWNER.
 
-## Fluxo Completo — Da Empresa ao Lead
+As rotas ficam em /api/v1/platform. O registro público de administradores não existe. As senhas são armazenadas com bcrypt. O painel não acessa leads de uma loja nem entra na sessão de seus usuários.
 
-```
-1. Interessado pede demonstração pela landing page (POST /api/v1/demo-requests)
-         ↓
-2. Equipe Cartalog recebe o pedido e cria a empresa pelo painel global
-         ↓
-3. API cria: Company + User(OWNER) + SiteSettings + SeoSettings + 5 LeadStatuses
-         ↓
-4. Dono cadastra vendedores e configura a loja pelo app desktop
-         ↓
-5. Empresa cadastra veículos no painel (com fotos e opcionais)
-         ↓
-6. Site público fica disponível em {slug}.cartalog.com
-         ↓
-7. Visitante acessa o site, visualiza veículos e envia formulário de contato
-         ↓
-8. Lead é criado (POST /api/v1/leads/public — rota pública com tenant via subdomínio/header)
-         ↓
-9. Vendedor assume o lead, registra interações e acompanha o status; dono acompanha e distribui
-```
+## 9. Assinaturas manuais
 
----
+Plan e CompanySubscription representam a oferta e o vínculo comercial. Os estados disponíveis são trialing, active, past_due, suspended e canceled. Alterações feitas pelo painel global geram PlatformAuditLog. A situação ainda não bloqueia automaticamente o catálogo, o login ou as ações da loja: a política de carência e suspensão precisa ser definida antes dessa regra. Não há integração com gateway, cobrança automática ou webhooks.
 
-## Como Rodar Localmente
+## 10. Manutenção do site da loja
 
-### Pré-requisitos
+O dono aciona a opção na tela de configurações do desktop. A API oferece GET e PATCH em /api/v1/companies/settings/maintenance, exigindo OWNER e usando o companyId da sessão. Cada alteração é registrada em SiteMaintenanceEvent. Vendedores não têm permissão.
 
-- Node.js 20+
-- PostgreSQL 16 (instalação local ou Docker Compose)
+O endpoint /api/v1/catalog/status continua disponível com nome, logo e mensagem da loja. Quando a manutenção está ligada, os demais endpoints de catálogo e o formulário público de leads respondem 503. O frontend Next mostra a página de manutenção em vez do conteúdo da loja. A página HTML do Next ainda responde 200; a API pública responde 503 com Retry-After e X-Robots-Tag. URLs diretas de uploads continuam acessíveis.
 
-### 1. Banco de dados
+O controle aparece somente no desktop. A API diferencia OWNER de SELLER, mas o token do dono pode ser usado em outras interfaces; autenticar o dispositivo Electron separadamente seria necessário para impor uma exclusividade técnica do desktop.
 
-Se usar Docker:
+## 11. Operação e pendências
 
-```bash
-docker compose up -d
-```
+1. Em api/, execute npm run db:generate e npm run db:migrate:prod.
+2. Execute npm run platform:bootstrap em um terminal interativo para criar ou trocar o e-mail e a senha do proprietário global.
+3. Inicie API e web e acesse /platform/login no domínio principal. No desenvolvimento local, use http://localhost:3000/platform/login.
+4. Crie um plano e, depois, uma empresa pelo painel. Entregue ao dono as credenciais iniciais por um canal seguro. Ele entra no desktop e cadastra vendedores.
 
-Se já tiver PostgreSQL 16 local, crie o banco `cartalog_dev` e configure `DATABASE_URL` em `api/.env`.
+Para testes locais, o instalador do desktop usa a API padrão em http://127.0.0.1:3333 e a web em http://localhost:3000. A build Windows está em desktop/release/.
 
-### 2. Backend (API)
+Pendências antes de uma operação comercial completa: política de suspensão por inadimplência, integração de pagamento, recuperação de senha por e-mail, autenticação multifator para contas globais, assinatura digital do instalador e configuração de endpoints de produção no desktop. A entrega de pedidos de demonstração por Gmail depende das variáveis SMTP no ambiente.
 
-```bash
-cd api
-cp .env.example .env
-# Edite .env com suas configurações
+## 12. Arquivos de referência
 
-npm install
-npx prisma generate
-npx prisma migrate deploy
-npm run dev
-```
-
-API disponível em: `http://localhost:3333`
-Documentação Swagger: `http://localhost:3333/docs`
-
-### 3. Frontend (Web)
-
-```bash
-cd web
-cp .env.example .env.local
-# Defina NEXT_PUBLIC_API_URL=http://localhost:3333
-
-npm install
-npm run dev
-```
-
-Frontend disponível em: `http://localhost:3000`
-
-### 4. App desktop (dono ou administrador global)
-
-```powershell
-cd desktop
-Copy-Item .env.example .env
-npm install
-npm run dev
-```
-
-Para gerar o instalador Windows: `npm run package:win`. Consulte [desktop/README.md](desktop/README.md) para as configurações de API e segurança.
-
-### Variáveis de ambiente principais (API)
-
-```env
-DATABASE_URL="postgresql://cartalog:cartalog_secret@localhost:5432/cartalog_dev"
-JWT_SECRET="sua-chave-secreta-64-chars"
-JWT_REFRESH_SECRET="outra-chave-diferente-64-chars"
-BASE_DOMAIN="cartalog.com"    # domínio base dos subdomínios
-PORT=3333
-UPLOAD_DIR="./uploads"
-```
-
----
-
-## Segurança
-
-- **Senhas:** hash com bcrypt
-- **Autenticação:** JWT stateless com access token (15min) + refresh token (7d)
-- **Isolamento de dados:** todo acesso privado valida `company_id === user.companyId`
-- **CORS:** em produção, aceita apenas origens do domínio base (`*.cartalog.com`)
-- **Upload:** validação de tipo MIME e tamanho no servidor
-- **Validação:** Zod em todas as entradas (body, params, query)
-
----
-
-## Roadmap
-
-- [x] Arquitetura inicial e configuração do projeto
-- [x] Autenticação JWT (login/refresh) e criação interna de empresas
-- [x] Multi-tenancy via subdomínio
-- [x] CRUD de veículos com upload de imagens
-- [x] Configurações da empresa (site, SEO, localização)
-- [x] Sistema de leads com CRM básico
-- [x] Catálogo público por subdomínio
-- [x] Dashboard com métricas
-- [x] Regras de dono (OWNER) e vendedor (SELLER) na API
-- [x] App desktop (Electron) para equipe, configurações e conteúdo do catálogo
-- [x] App mobile (React Native/Expo) para atendimento de leads por vendedores
-- [x] Painel global com contas por e-mail, criação de empresas, planos e assinaturas manuais
-- [x] Manutenção do site por loja no desktop
-- [ ] Cobrança automática e integração de pagamento
----
-
-## Licença
-
-Este projeto foi desenvolvido como Trabalho de Conclusão de Curso e está disponível para fins acadêmicos.
-
----
-
-*Desenvolvido por Joseph Santos — 2025/2026*
+- [Visão geral](README.md), [API](api/src/server.ts), [schema Prisma](api/prisma/schema.prisma) e [migrações](api/prisma/migrations).
+- [Autenticação](api/src/modules/auth/auth.service.ts), [middleware de autorização](api/src/shared/middlewares/auth.middleware.ts) e [identificação da loja](api/src/shared/middlewares/tenant.middleware.ts).
+- [Landing](web/src/app/page.tsx), [proxy de subdomínios](web/src/proxy.ts) e [catálogo público](api/src/modules/catalog/catalog.routes.ts).
+- [Desktop](desktop/README.md), [web](web/README.md) e [mobile](mobile/README.md).

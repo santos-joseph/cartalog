@@ -7,6 +7,7 @@ Aplicativo Electron para o **dono da loja e a equipe global Cartalog**. O login 
 - Entrar com uma conta de dono da loja ou administrador global existente.
 - Gerenciar empresas, planos, assinaturas, pedidos de demonstração e administradores no espaço global. A auditoria reúne ações globais e alterações feitas em lojas, com autor, empresa e data, além de filtro e paginação.
 - Cadastrar, renomear, desativar e reativar vendedores. Ao desativar, a API devolve os leads atribuídos à fila.
+- Acompanhar todos os leads da loja, filtrar por status e vendedor, consultar contato e histórico, e atribuir responsáveis. O dono não altera o status nem registra atendimento.
 - Configurar logo, cores, contatos, endereço, opções do catálogo e informações para busca.
 - Cadastrar e editar veículos, fotos, opcionais, categoria e status do estoque.
 - Criar e gerenciar categorias e banners do catálogo público.

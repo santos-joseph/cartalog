@@ -191,6 +191,7 @@ model SiteSettings {
   theme              String? @db.VarChar
   showPrices         Boolean @default(true) @map("show_prices")
   showWhatsappButton Boolean @default(true) @map("show_whatsapp_button")
+  showStoreNameWithLogo Boolean @default(true) @map("show_store_name_with_logo")
   backgroundColor    String? @map("background_color") @db.VarChar
   fontFamily         String? @map("font_family") @db.VarChar
   homeHeadline       String? @map("home_headline") @db.VarChar

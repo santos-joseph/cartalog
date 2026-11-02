@@ -111,20 +111,17 @@ export class VehiclesService {
 
   async create(companyId: string, input: CreateVehicleInput) {
     if (input.categoryId) await this.requireCategory(companyId, input.categoryId)
-    const model = await prisma.model.findUnique({
-      where: { id: input.modelId },
-      include: { brand: true },
-    })
-    if (!model) throw new NotFoundError('Model')
+    const model = await this.resolveModel(input)
 
     const baseSlug = slugify(`${model.brand.name}-${model.name}-${input.year}`)
     const slug = await this.generateUniqueSlug(companyId, baseSlug)
 
-    const { featureIds, price, ...rest } = input
+    const { featureIds, price, modelId: _modelId, modelName: _modelName, brandId: _brandId, ...rest } = input
 
     return prisma.vehicle.create({
       data: {
         ...rest,
+        modelId: model.id,
         price,
         companyId,
         slug,
@@ -147,7 +144,8 @@ export class VehiclesService {
     await this.findVehicleOrThrow(companyId, vehicleId)
     if (input.categoryId) await this.requireCategory(companyId, input.categoryId)
 
-    const { featureIds, price, ...rest } = input
+    const model = input.modelId || input.modelName ? await this.resolveModel(input) : null
+    const { featureIds, price, modelId: _modelId, modelName: _modelName, brandId: _brandId, ...rest } = input
 
     if (featureIds !== undefined) {
       await prisma.vehicleFeature.deleteMany({ where: { vehicleId } })
@@ -157,6 +155,7 @@ export class VehiclesService {
       where: { id: vehicleId },
       data: {
         ...rest,
+        ...(model && { modelId: model.id }),
         ...(price !== undefined && { price }),
         ...(featureIds !== undefined && {
           features: { create: featureIds.map((featureId) => ({ featureId })) },
@@ -237,6 +236,28 @@ export class VehiclesService {
   private async requireCategory(companyId: string, categoryId: string) {
     const category = await prisma.category.findFirst({ where: { id: categoryId, companyId } })
     if (!category) throw new ValidationError('Category belongs to another company or does not exist')
+  }
+
+  private async resolveModel(input: { modelId?: string; brandId?: string; modelName?: string }) {
+    if (input.brandId && input.modelName) {
+      const brand = await prisma.brand.findUnique({ where: { id: input.brandId } })
+      if (!brand) throw new NotFoundError('Brand')
+      const name = input.modelName.trim().replace(/\s+/g, ' ')
+      const existing = await prisma.model.findFirst({
+        where: { brandId: brand.id, name: { equals: name, mode: 'insensitive' } },
+        include: { brand: true },
+      })
+      return existing ?? prisma.model.upsert({
+        where: { brandId_name: { brandId: brand.id, name } },
+        update: {},
+        create: { brandId: brand.id, name },
+        include: { brand: true },
+      })
+    }
+    if (!input.modelId) throw new ValidationError('Informe a marca e o modelo')
+    const model = await prisma.model.findUnique({ where: { id: input.modelId }, include: { brand: true } })
+    if (!model) throw new NotFoundError('Model')
+    return model
   }
 
   async getBrands() {

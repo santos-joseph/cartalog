@@ -32,7 +32,7 @@ export default function EditVehiclePage() {
   })
 
   const [form, setForm] = useState({
-    brandId: '', modelId: '', year: new Date().getFullYear(), mileage: 0,
+    brandId: '', modelName: '', year: new Date().getFullYear(), mileage: 0,
     price: '', color: '', status: 'available', fuelId: '', transmissionId: '',
     categoryId: '', description: '', featureIds: [] as string[],
   })
@@ -67,7 +67,7 @@ export default function EditVehiclePage() {
     if (vehicle) {
       setForm({
         brandId: vehicle.model.brand.id,
-        modelId: vehicle.model.id,
+        modelName: vehicle.model.name,
         year: vehicle.year,
         mileage: vehicle.mileage,
         price: vehicle.price,
@@ -86,7 +86,8 @@ export default function EditVehiclePage() {
   const saveMutation = useMutation({
     mutationFn: (data: typeof form) =>
       vehiclesService.update(id, {
-        modelId: data.modelId,
+        brandId: data.brandId,
+        modelName: data.modelName.trim(),
         categoryId: data.categoryId || undefined,
         fuelId: data.fuelId || undefined,
         transmissionId: data.transmissionId || undefined,
@@ -128,7 +129,7 @@ export default function EditVehiclePage() {
   function set(f: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
       const value = e.target.value
-      setForm((p) => ({ ...p, [f]: value, ...(f === 'brandId' ? { modelId: '' } : {}) }))
+      setForm((p) => ({ ...p, [f]: value, ...(f === 'brandId' ? { modelName: '' } : {}) }))
     }
   }
 
@@ -264,13 +265,10 @@ export default function EditVehiclePage() {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Modelo *</label>
-              <select value={form.modelId} onChange={set('modelId')} required disabled={!form.brandId} className={selectClass}>
-                <option value="">Selecione o modelo</option>
-                {(models as any[]).map((m: any) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+              <label htmlFor="vehicle-model" className="text-sm font-medium text-foreground">Modelo *</label>
+              <input id="vehicle-model" list="vehicle-model-options" value={form.modelName} onChange={set('modelName')} required maxLength={120} disabled={!form.brandId} placeholder="Digite o modelo" className={selectClass} />
+              <datalist id="vehicle-model-options">{(models as any[]).map((m: any) => <option key={m.id} value={m.name} />)}</datalist>
+              <p className="text-xs text-muted-foreground">Pode digitar um modelo que ainda não aparece na lista.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

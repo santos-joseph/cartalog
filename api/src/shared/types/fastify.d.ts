@@ -38,6 +38,7 @@ declare module 'fastify' {
         theme: string | null
         showPrices: boolean
         showWhatsappButton: boolean
+        showStoreNameWithLogo: boolean
         maintenanceEnabled: boolean
         maintenanceMessage: string | null
       } | null

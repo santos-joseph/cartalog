@@ -6,7 +6,7 @@ import { useState } from 'react'
 interface Company {
   id: string; name: string; slug: string; logoUrl?: string | null
   primaryColor?: string | null; phone?: string | null; whatsapp?: string | null
-  siteSettings?: { showWhatsappButton?: boolean } | null
+  siteSettings?: { showWhatsappButton?: boolean; showStoreNameWithLogo?: boolean } | null
   pages?: Array<{ id: string; title: string; slug: string }>
 }
 
@@ -18,15 +18,15 @@ export function CatalogNav({ company }: { company: Company }) {
 
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-5">
-      <div className="max-w-[1200px] mx-auto rounded-full border border-border bg-white/90 px-4 sm:px-6 h-[68px] flex items-center justify-between gap-4 shadow-[0_8px_30px_rgba(20,20,25,.06)] backdrop-blur-xl">
+      <div className="max-w-[1200px] mx-auto rounded-full border border-border bg-white/90 px-4 sm:px-6 h-[76px] flex items-center justify-between gap-4 shadow-[0_8px_30px_rgba(20,20,25,.06)] backdrop-blur-xl">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 hover:no-underline flex-shrink-0">
           {logoUrl ? (
-            <img src={logoUrl} alt={company.name} className="h-9 w-auto object-contain" />
+            <img src={logoUrl} alt={company.name} className="h-12 sm:h-14 w-auto max-w-40 sm:max-w-56 object-contain" />
           ) : (
             <img src="/brand/cartalog-mark.png" alt="" className="h-9 w-9 object-contain" />
           )}
-          <span className="font-semibold tracking-tight text-foreground text-base sm:text-lg max-w-32 sm:max-w-52 truncate">{company.name}</span>
+          {(!logoUrl || company.siteSettings?.showStoreNameWithLogo !== false) && <span className="font-semibold tracking-tight text-foreground text-base sm:text-lg max-w-32 sm:max-w-52 truncate">{company.name}</span>}
         </Link>
 
         {/* Nav links desktop */}
@@ -62,7 +62,7 @@ export function CatalogNav({ company }: { company: Company }) {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden absolute left-4 right-4 top-[83px] rounded-2xl border border-border bg-white px-4 py-3 space-y-1 shadow-lg">
+        <div className="md:hidden absolute left-4 right-4 top-[91px] rounded-2xl border border-border bg-white px-4 py-3 space-y-1 shadow-lg">
           <Link href="/" onClick={() => setOpen(false)} className="block py-2 text-sm text-foreground hover:no-underline">Início</Link>
           <Link href="/veiculos" onClick={() => setOpen(false)} className="block py-2 text-sm text-foreground hover:no-underline">Veículos</Link>
           {company.pages?.map((page) => <Link key={page.id} href={`/paginas/${page.slug}`} onClick={() => setOpen(false)} className="block py-2 text-sm text-foreground hover:no-underline">{page.title}</Link>)}

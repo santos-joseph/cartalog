@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { ArrowRight, BookOpenText, Building2, CarFront, ChevronDown, Copy, LayoutDashboard, LogOut, Maximize2, Minus, Settings2, ShieldCheck, UsersRound, X } from 'lucide-react'
+import { ArrowRight, BookOpenText, Building2, CarFront, ChevronDown, Copy, LayoutDashboard, LogOut, Maximize2, MessageCircleMore, Minus, Settings2, ShieldCheck, UsersRound, X } from 'lucide-react'
 import logo from '../assets/cartalog-logo.png'
 import logoWhite from '../assets/cartalog-logo-white.png'
 import type { Bootstrap, DesktopSession } from './types'
@@ -10,14 +10,17 @@ import { TeamPage } from './pages/TeamPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ContentPage } from './pages/ContentPage'
 import { VehiclesPage } from './pages/VehiclesPage'
+import { LeadsPage } from './pages/LeadsPage'
 import { PlatformPage } from './pages/PlatformPage'
+import { PageErrorBoundary } from './PageErrorBoundary'
 
-type View = 'overview' | 'vehicles' | 'team' | 'settings' | 'content'
+type View = 'overview' | 'vehicles' | 'leads' | 'team' | 'settings' | 'content'
 type Notice = { text: string; kind: 'success' | 'error' }
 
 const nav: { id: View; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Visão geral', icon: LayoutDashboard },
   { id: 'vehicles', label: 'Veículos', icon: CarFront },
+  { id: 'leads', label: 'Leads', icon: MessageCircleMore },
   { id: 'team', label: 'Vendedores', icon: UsersRound },
   { id: 'settings', label: 'Minha loja', icon: Settings2 },
   { id: 'content', label: 'Catálogo público', icon: BookOpenText },
@@ -77,18 +80,21 @@ export default function App() {
         {nav.map((item) => <button type="button" key={item.id} className={view === item.id ? 'nav-active' : ''} onClick={() => setView(item.id)}><item.icon size={20} /><span>{item.label}</span>{view === item.id && <ArrowRight size={16} />}</button>)}
       </nav>
       <div className="sidebar-spacer" />
-      <div className="sidebar-info"><ShieldCheck size={20} /><span>Área exclusiva para o dono. O atendimento de leads segue na web e no mobile.</span></div>
+      <div className="sidebar-info"><ShieldCheck size={20} /><span>Acompanhe e distribua os leads aqui. O atendimento segue com os vendedores na web e no mobile.</span></div>
       <button type="button" className="sidebar-logout" onClick={logout} disabled={loggingOut}><LogOut size={18} />{loggingOut ? 'Saindo...' : 'Sair da conta'}</button>
     </aside>
 
     <main className="main-panel">
       <div className="topbar"><span>Cartalog <span className="breadcrumb-slash">/</span> {nav.find((item) => item.id === view)?.label}</span><div><ApiConnection /><span className="topbar-divider" /><span className="user-circle">{session.user.name.slice(0, 1).toUpperCase()}</span><strong>{session.user.name}</strong></div></div>
       <div className="page-content">
+        <PageErrorBoundary key={view} onBack={() => setView('overview')}>
         {view === 'overview' && <OverviewPage session={session} apiOrigin={bootstrap.apiOrigin} onNavigate={setView} notify={notify} />}
         {view === 'vehicles' && <VehiclesPage apiOrigin={bootstrap.apiOrigin} notify={notify} />}
+        {view === 'leads' && <LeadsPage notify={notify} onTeam={() => setView('team')} />}
         {view === 'team' && <TeamPage notify={notify} />}
         {view === 'settings' && <SettingsPage apiOrigin={bootstrap.apiOrigin} notify={notify} />}
         {view === 'content' && <ContentPage apiOrigin={bootstrap.apiOrigin} notify={notify} />}
+        </PageErrorBoundary>
       </div>
     </main>
     {notice && <div role="status" className={`toast toast-${notice.kind}`}>{notice.text}</div>}

@@ -1,0 +1,639 @@
+Table "demo_requests" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR(100) [not null]
+  "email" VARCHAR(255) [not null]
+  "phone" VARCHAR(30) [not null]
+  "company_name" VARCHAR(100) [not null]
+  "message" TEXT
+  "email_status" VARCHAR(20) [not null, default: 'pending']
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "emailed_at" TIMESTAMP(3)
+
+  Indexes {
+    id [pk, name: "demo_requests_pkey"]
+    created_at [name: "demo_requests_created_at_idx"]
+  }
+}
+
+Table "platform_users" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR(100) [not null]
+  "email" VARCHAR(255) [not null]
+  "password_hash" TEXT [not null]
+  "role" VARCHAR(30) [not null, default: 'PLATFORM_ADMIN']
+  "is_active" BOOLEAN [not null, default: true]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "platform_users_pkey"]
+    email [unique, name: "platform_users_email_key"]
+  }
+}
+
+Table "platform_audit_logs" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "actor_id" UUID [not null]
+  "action" VARCHAR(80) [not null]
+  "target" VARCHAR(120) [not null]
+  "details" JSONB
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "platform_audit_logs_pkey"]
+    created_at [name: "platform_audit_logs_created_at_idx"]
+  }
+}
+
+Table "store_audit_logs" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "actor_id" UUID
+  "actor_name" VARCHAR(100) [not null]
+  "actor_email" VARCHAR(255)
+  "action" VARCHAR(80) [not null]
+  "target" VARCHAR(120) [not null]
+  "details" JSONB
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "store_audit_logs_pkey"]
+    (created_at, id) [name: "store_audit_logs_created_at_id_idx"]
+    (company_id, created_at) [name: "store_audit_logs_company_id_created_at_idx"]
+  }
+}
+
+Table "plans" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "code" VARCHAR(50) [not null]
+  "name" VARCHAR(100) [not null]
+  "price_cents" INTEGER [not null, default: 0]
+  "billing_interval" VARCHAR(20) [not null, default: 'monthly']
+  "is_active" BOOLEAN [not null, default: true]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "plans_pkey"]
+    code [unique, name: "plans_code_key"]
+  }
+}
+
+Table "company_subscriptions" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "plan_id" UUID [not null]
+  "status" VARCHAR(20) [not null, default: 'trialing']
+  "starts_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+  "current_period_end" TIMESTAMP(3)
+  "notes" TEXT
+  "updated_at" TIMESTAMP(3) [not null]
+
+  Indexes {
+    id [pk, name: "company_subscriptions_pkey"]
+    company_id [unique, name: "company_subscriptions_company_id_key"]
+    status [name: "company_subscriptions_status_idx"]
+  }
+}
+
+Table "site_maintenance_events" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "user_id" UUID [not null]
+  "enabled" BOOLEAN [not null]
+  "message" VARCHAR(500)
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "site_maintenance_events_pkey"]
+    (company_id, created_at) [name: "site_maintenance_events_company_id_created_at_idx"]
+  }
+}
+
+Table "companies" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR [not null]
+  "slug" VARCHAR [not null]
+  "logo_url" TEXT
+  "primary_color" VARCHAR
+  "secondary_color" VARCHAR
+  "description" TEXT
+  "phone" VARCHAR
+  "whatsapp" VARCHAR
+  "email" VARCHAR
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "companies_pkey"]
+    slug [unique, name: "companies_slug_key"]
+  }
+}
+
+Table "users" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "name" VARCHAR [not null]
+  "email" VARCHAR [not null]
+  "password_hash" TEXT [not null]
+  "role" VARCHAR [not null]
+  "is_active" BOOLEAN [not null, default: true]
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "users_pkey"]
+    email [unique, name: "users_email_key"]
+    company_id [name: "users_company_id_idx"]
+    (company_id, email) [unique, name: "users_company_id_email_key"]
+  }
+}
+
+Table "site_settings" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "theme" VARCHAR
+  "show_prices" BOOLEAN [not null, default: true]
+  "show_whatsapp_button" BOOLEAN [not null, default: true]
+  "background_color" VARCHAR
+  "font_family" VARCHAR
+  "home_headline" VARCHAR
+  "home_subheadline" TEXT
+  "show_home_stats" BOOLEAN [not null, default: true]
+  "maintenance_enabled" BOOLEAN [not null, default: false]
+  "maintenance_message" VARCHAR(500)
+  "maintenance_updated_at" TIMESTAMP(3)
+
+  Indexes {
+    id [pk, name: "site_settings_pkey"]
+    company_id [unique, name: "site_settings_company_id_key"]
+  }
+}
+
+Table "seo_settings" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "meta_title" VARCHAR
+  "meta_description" TEXT
+  "meta_keywords" TEXT
+
+  Indexes {
+    id [pk, name: "seo_settings_pkey"]
+    company_id [unique, name: "seo_settings_company_id_key"]
+  }
+}
+
+Table "company_locations" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "address" VARCHAR
+  "city" VARCHAR
+  "state" VARCHAR
+  "zip_code" VARCHAR
+  "latitude" DECIMAL
+  "longitude" DECIMAL
+
+  Indexes {
+    id [pk, name: "company_locations_pkey"]
+  }
+}
+
+Table "banners" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "title" VARCHAR [not null]
+  "subtitle" VARCHAR
+  "image_url" TEXT [not null]
+  "button_text" VARCHAR
+  "button_link" VARCHAR
+  "position" INTEGER
+  "is_active" BOOLEAN [not null, default: true]
+
+  Indexes {
+    id [pk, name: "banners_pkey"]
+  }
+}
+
+Table "pages" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "title" VARCHAR [not null]
+  "slug" VARCHAR [not null]
+  "content" TEXT [not null]
+  "blocks" JSONB
+  "is_published" BOOLEAN [not null, default: false]
+
+  Indexes {
+    id [pk, name: "pages_pkey"]
+    (company_id, slug) [unique, name: "pages_company_id_slug_key"]
+  }
+}
+
+Table "categories" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "name" VARCHAR [not null]
+  "slug" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "categories_pkey"]
+    (company_id, slug) [unique, name: "categories_company_id_slug_key"]
+  }
+}
+
+Table "brands" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "brands_pkey"]
+    name [unique, name: "brands_name_key"]
+  }
+}
+
+Table "models" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "brand_id" UUID [not null]
+  "name" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "models_pkey"]
+    (brand_id, name) [unique, name: "models_brand_id_name_key"]
+  }
+}
+
+Table "fuels" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "fuels_pkey"]
+    name [unique, name: "fuels_name_key"]
+  }
+}
+
+Table "transmissions" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "transmissions_pkey"]
+    name [unique, name: "transmissions_name_key"]
+  }
+}
+
+Table "vehicles" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "category_id" UUID
+  "model_id" UUID [not null]
+  "fuel_id" UUID
+  "transmission_id" UUID
+  "slug" VARCHAR [not null]
+  "year" INTEGER [not null]
+  "mileage" INTEGER [not null, default: 0]
+  "price" DECIMAL [not null]
+  "color" VARCHAR
+  "description" TEXT
+  "status" VARCHAR [not null, default: 'available']
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "vehicles_pkey"]
+    company_id [name: "vehicles_company_id_idx"]
+    model_id [name: "vehicles_model_id_idx"]
+    (company_id, slug) [unique, name: "vehicles_company_id_slug_key"]
+  }
+}
+
+Table "vehicle_images" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "vehicle_id" UUID [not null]
+  "image_url" TEXT [not null]
+  "is_cover" BOOLEAN [not null, default: false]
+  "position" INTEGER
+
+  Indexes {
+    id [pk, name: "vehicle_images_pkey"]
+  }
+}
+
+Table "features" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "name" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "features_pkey"]
+    name [unique, name: "features_name_key"]
+  }
+}
+
+Table "vehicle_features" {
+  "vehicle_id" UUID [not null]
+  "feature_id" UUID [not null]
+
+  Indexes {
+    (vehicle_id, feature_id) [pk, name: "vehicle_features_pkey"]
+  }
+}
+
+Table "featured_vehicles" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "vehicle_id" UUID [not null]
+  "position" INTEGER
+
+  Indexes {
+    id [pk, name: "featured_vehicles_pkey"]
+  }
+}
+
+Table "vehicle_views" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "vehicle_id" UUID [not null]
+  "viewed_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "vehicle_views_pkey"]
+  }
+}
+
+Table "searches" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "query" VARCHAR [not null]
+  "searched_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "searches_pkey"]
+  }
+}
+
+Table "lead_status" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "name" VARCHAR [not null]
+  "position" INTEGER
+  "kind" VARCHAR [not null, default: 'open']
+
+  Indexes {
+    id [pk, name: "lead_status_pkey"]
+  }
+}
+
+Table "leads" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "vehicle_id" UUID
+  "assigned_user_id" UUID
+  "status_id" UUID
+  "name" VARCHAR [not null]
+  "phone" VARCHAR
+  "email" VARCHAR
+  "message" TEXT
+  "source" VARCHAR
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "leads_pkey"]
+    company_id [name: "leads_company_id_idx"]
+  }
+}
+
+Table "lead_interactions" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "lead_id" UUID [not null]
+  "user_id" UUID
+  "type" VARCHAR [not null]
+  "note" TEXT
+  "created_at" TIMESTAMP(3) [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    id [pk, name: "lead_interactions_pkey"]
+  }
+}
+
+Table "lead_followups" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "lead_id" UUID [not null]
+  "user_id" UUID
+  "scheduled_at" TIMESTAMP(3) [not null]
+  "note" TEXT
+  "completed" BOOLEAN [not null, default: false]
+
+  Indexes {
+    id [pk, name: "lead_followups_pkey"]
+  }
+}
+
+Table "lead_tags" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "company_id" UUID [not null]
+  "name" VARCHAR [not null]
+
+  Indexes {
+    id [pk, name: "lead_tags_pkey"]
+  }
+}
+
+Table "lead_tag_relations" {
+  "lead_id" UUID [not null]
+  "tag_id" UUID [not null]
+
+  Indexes {
+    (lead_id, tag_id) [pk, name: "lead_tag_relations_pkey"]
+    tag_id [name: "lead_tag_relations_tag_id_idx"]
+    lead_id [name: "lead_tag_relations_lead_id_idx"]
+  }
+}
+
+Table "lead_vehicle_interest" {
+  "id" UUID [not null, default: `gen_random_uuid()`]
+  "lead_id" UUID [not null]
+  "vehicle_id" UUID [not null]
+
+  Indexes {
+    id [pk, name: "lead_vehicle_interest_pkey"]
+  }
+}
+
+Ref "platform_audit_logs_actor_id_fkey":"platform_users"."id" <? "platform_audit_logs"."actor_id" [update: cascade, delete: restrict]
+
+Ref "store_audit_logs_company_id_fkey":"companies"."id" <? "store_audit_logs"."company_id" [update: cascade, delete: restrict]
+
+Ref "company_subscriptions_company_id_fkey":"companies"."id" - "company_subscriptions"."company_id" [update: cascade, delete: restrict]
+
+Ref "company_subscriptions_plan_id_fkey":"plans"."id" <? "company_subscriptions"."plan_id" [update: cascade, delete: restrict]
+
+Ref "site_maintenance_events_company_id_fkey":"companies"."id" <? "site_maintenance_events"."company_id" [update: cascade, delete: restrict]
+
+Ref "site_maintenance_events_user_id_fkey":"users"."id" <? "site_maintenance_events"."user_id" [update: cascade, delete: restrict]
+
+Ref "users_company_id_fkey":"companies"."id" <? "users"."company_id" [update: cascade, delete: restrict]
+
+Ref "site_settings_company_id_fkey":"companies"."id" - "site_settings"."company_id" [update: cascade, delete: restrict]
+
+Ref "seo_settings_company_id_fkey":"companies"."id" - "seo_settings"."company_id" [update: cascade, delete: restrict]
+
+Ref "company_locations_company_id_fkey":"companies"."id" <? "company_locations"."company_id" [update: cascade, delete: restrict]
+
+Ref "banners_company_id_fkey":"companies"."id" <? "banners"."company_id" [update: cascade, delete: restrict]
+
+Ref "pages_company_id_fkey":"companies"."id" <? "pages"."company_id" [update: cascade, delete: restrict]
+
+Ref "categories_company_id_fkey":"companies"."id" <? "categories"."company_id" [update: cascade, delete: restrict]
+
+Ref "models_brand_id_fkey":"brands"."id" <? "models"."brand_id" [update: cascade, delete: restrict]
+
+Ref "vehicles_company_id_fkey":"companies"."id" <? "vehicles"."company_id" [update: cascade, delete: restrict]
+
+Ref "vehicles_category_id_fkey":"categories"."id" ?<? "vehicles"."category_id" [update: cascade, delete: set null]
+
+Ref "vehicles_model_id_fkey":"models"."id" <? "vehicles"."model_id" [update: cascade, delete: restrict]
+
+Ref "vehicles_fuel_id_fkey":"fuels"."id" ?<? "vehicles"."fuel_id" [update: cascade, delete: set null]
+
+Ref "vehicles_transmission_id_fkey":"transmissions"."id" ?<? "vehicles"."transmission_id" [update: cascade, delete: set null]
+
+Ref "vehicle_images_vehicle_id_fkey":"vehicles"."id" <? "vehicle_images"."vehicle_id" [update: cascade, delete: restrict]
+
+Ref "vehicle_features_vehicle_id_fkey":"vehicles"."id" <? "vehicle_features"."vehicle_id" [update: cascade, delete: restrict]
+
+Ref "vehicle_features_feature_id_fkey":"features"."id" <? "vehicle_features"."feature_id" [update: cascade, delete: restrict]
+
+Ref "featured_vehicles_company_id_fkey":"companies"."id" <? "featured_vehicles"."company_id" [update: cascade, delete: restrict]
+
+Ref "featured_vehicles_vehicle_id_fkey":"vehicles"."id" <? "featured_vehicles"."vehicle_id" [update: cascade, delete: restrict]
+
+Ref "vehicle_views_vehicle_id_fkey":"vehicles"."id" <? "vehicle_views"."vehicle_id" [update: cascade, delete: restrict]
+
+Ref "searches_company_id_fkey":"companies"."id" <? "searches"."company_id" [update: cascade, delete: restrict]
+
+Ref "lead_status_company_id_fkey":"companies"."id" <? "lead_status"."company_id" [update: cascade, delete: restrict]
+
+Ref "leads_company_id_fkey":"companies"."id" <? "leads"."company_id" [update: cascade, delete: restrict]
+
+Ref "leads_vehicle_id_fkey":"vehicles"."id" ?<? "leads"."vehicle_id" [update: cascade, delete: set null]
+
+Ref "leads_assigned_user_id_fkey":"users"."id" ?<? "leads"."assigned_user_id" [update: cascade, delete: set null]
+
+Ref "leads_status_id_fkey":"lead_status"."id" ?<? "leads"."status_id" [update: cascade, delete: set null]
+
+Ref "lead_interactions_lead_id_fkey":"leads"."id" <? "lead_interactions"."lead_id" [update: cascade, delete: restrict]
+
+Ref "lead_interactions_user_id_fkey":"users"."id" ?<? "lead_interactions"."user_id" [update: cascade, delete: set null]
+
+Ref "lead_followups_lead_id_fkey":"leads"."id" <? "lead_followups"."lead_id" [update: cascade, delete: restrict]
+
+Ref "lead_followups_user_id_fkey":"users"."id" ?<? "lead_followups"."user_id" [update: cascade, delete: set null]
+
+Ref "lead_tags_company_id_fkey":"companies"."id" <? "lead_tags"."company_id" [update: cascade, delete: restrict]
+
+Ref "lead_tag_relations_lead_id_fkey":"leads"."id" <? "lead_tag_relations"."lead_id" [update: cascade, delete: restrict]
+
+Ref "lead_tag_relations_tag_id_fkey":"lead_tags"."id" <? "lead_tag_relations"."tag_id" [update: cascade, delete: restrict]
+
+Ref "lead_vehicle_interest_lead_id_fkey":"leads"."id" <? "lead_vehicle_interest"."lead_id" [update: cascade, delete: restrict]
+
+Ref "lead_vehicle_interest_vehicle_id_fkey":"vehicles"."id" <? "lead_vehicle_interest"."vehicle_id" [update: cascade, delete: restrict]
+
+// Grupos visuais: cada tabela aparece em um único grupo.
+TableGroup plataforma [color: #F3BBC5, note: 'Acesso global, planos e solicitações de demonstração'] {
+  demo_requests
+  platform_users
+  platform_audit_logs
+  plans
+  company_subscriptions
+}
+
+TableGroup lojas_e_site [color: #D9D5E8, note: 'Empresa, equipe, páginas e personalização'] {
+  companies
+  users
+  site_settings
+  seo_settings
+  company_locations
+  banners
+  pages
+  site_maintenance_events
+  store_audit_logs
+}
+
+TableGroup veiculos [color: #C9DFE8, note: 'Estoque, referência automotiva e métricas'] {
+  categories
+  brands
+  models
+  fuels
+  transmissions
+  vehicles
+  vehicle_images
+  features
+  vehicle_features
+  featured_vehicles
+  vehicle_views
+  searches
+}
+
+TableGroup leads [color: #F4DFC0, note: 'Captação e atendimento dos leads'] {
+  lead_status
+  leads
+  lead_interactions
+  lead_followups
+  lead_tags
+  lead_tag_relations
+  lead_vehicle_interest
+}
+
+// Escolha uma visualização no dbdiagram para evitar 33 tabelas no mesmo canvas.
+DiagramView plataforma {
+  Tables {
+    demo_requests
+    platform_users
+    platform_audit_logs
+    plans
+    company_subscriptions
+    companies
+  }
+}
+
+DiagramView lojas_e_site {
+  Tables {
+    companies
+    users
+    site_settings
+    seo_settings
+    company_locations
+    banners
+    pages
+    site_maintenance_events
+    store_audit_logs
+  }
+}
+
+DiagramView veiculos {
+  Tables {
+    companies
+    categories
+    brands
+    models
+    fuels
+    transmissions
+    vehicles
+    vehicle_images
+    features
+    vehicle_features
+    featured_vehicles
+    vehicle_views
+    searches
+  }
+}
+
+DiagramView leads {
+  Tables {
+    companies
+    users
+    vehicles
+    lead_status
+    leads
+    lead_interactions
+    lead_followups
+    lead_tags
+    lead_tag_relations
+    lead_vehicle_interest
+  }
+}
